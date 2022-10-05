@@ -26,6 +26,33 @@ impl UI {
                 .button("Quit", |siv| siv.quit()),
         );
 
+        // 2 modes:
+        // - reserve currency mode
+        // - basket mode
+
+        // |--------------------------------------------------------------------------------------------------|
+        // | ______menubar___________________________________________________________________________________ |
+        // |              |                                                                                   |
+        // |  [ ] VRSC    |   VRSC-ETH                                                                        |
+        // |  [ ] BTC     |   -> VRSC                                                       1.23456789        |
+        // |  [x] vETH    |   -> vETH                                                       0.12345678        |
+        // |  [ ] USDc    |                                                                                   |
+        // |              |                                                                                   |
+        // |              |                                                                                   |
+        // |              |                                                                                   |
+        // |              |                                                                                   |
+        // |              |                                                                                   |
+        // |              |                                                                                   |
+        // |              |                                                                                   |
+        // |              |                                                                                   |
+        // |              |                                                                                   |
+        // |              |                                                                                   |
+        // |              |                                                                                   |
+        // |              |                                                                                   |
+        // |              |                                                                                   |
+        // |              |                                                                                   |
+        // |--------------------------------------------------------------------------------------------------|
+
         UI { siv, ui_rx, ui_tx }
     }
 
@@ -36,7 +63,16 @@ impl UI {
 
         while let Some(message) = self.ui_rx.try_iter().next() {
             match message {
-                UIMessage::UpdateReserveOverview => {}
+                UIMessage::UpdateReserveOverview(baskets) => {
+                    // Need to show:
+                    // - name of the basket
+                    // - amount of basket currency in circulation
+                    // - names of the reserves that were selected
+                    // - amounts of the reserves in circulation
+
+                    // clicking on the name of the basket should open up a layer with all the information of the basket and all its currencies
+                    // the selection should just be a filter of the baskets
+                }
             }
         }
 
@@ -47,5 +83,7 @@ impl UI {
 }
 
 pub enum UIMessage {
-    UpdateReserveOverview,
+    UpdateReserveOverview(Vec<Basket>),
 }
+
+pub struct Basket {}

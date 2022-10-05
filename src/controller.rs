@@ -9,6 +9,7 @@ pub struct Controller {
     _data: Arc<()>,
     pub c_rx: mpsc::Receiver<ControllerMessage>,
     pub ui: UI,
+    pub client: vrsc_rpc::Client,
 }
 
 impl Controller {
@@ -17,26 +18,45 @@ impl Controller {
         // Self::zmq_tx_notify(c_tx.clone());
         Self::zmq_block_notify(c_tx.clone());
 
+        let client = vrsc_rpc::Client::chain("vrsctest", vrsc_rpc::Auth::ConfigFile, None)
+            .expect("a verus daemon");
+
         Controller {
             _data,
             c_rx,
             ui: UI::new(),
+            client,
         }
     }
 
     pub fn start(&mut self) {
         self.ui.siv.set_autorefresh(false);
 
-        self.ui
-            .ui_tx
-            .send(crate::ui::UIMessage::UpdateReserveOverview)
-            .unwrap();
-
         while self.ui.step() {
             if let Some(message) = self.c_rx.try_iter().next() {
                 match message {
                     ControllerMessage::NewBlock(blockhash) => {
                         info!("new block arrived: {}", blockhash);
+
+                        // need to get some data from the UI.
+                        // create me own view with data i can query using `self.ui.siv.call_on()`
+                        // or trigger a controllermessage when selecting a new currency and update it here.
+                        // self.client.get_currency_converters();
+
+                        // how do i know that a specific basket was selected?
+                        // - can we have multiple baskets at the same time? why not? (maybe v2)
+
+                        // at this point, i need to start querying the daemon for
+                        // the latest currency state (getcurrencystate 'currency'), based on
+                        // - some selected currency or currencies that exist in the reserve.
+                        //   where should i store selected currencies? it's the resulting list of currencies for `getcurrencyconverters`
+                        // - a specific basket itself
+                        // and then i need to send a message to the UI thread to update the view (table).
+                        // the message needs to contain:
+                        // - amount of x in reserve
+                        // - price in reserve, relative to the basket currency
+
+                        // - update a log view (v2)
                     }
                     ControllerMessage::NewTransaction(txid) => {
                         info!("new tx arrived: {}", txid);
