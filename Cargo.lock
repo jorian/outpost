@@ -623,6 +623,20 @@ dependencies = [
 ]
 
 [[package]]
+name = "outpost"
+version = "0.1.0"
+dependencies = [
+ "color-eyre",
+ "cursive",
+ "cursive-aligned-view",
+ "cursive_table_view",
+ "tracing",
+ "tracing-subscriber",
+ "vrsc-rpc",
+ "zmq",
+]
+
+[[package]]
 name = "owning_ref"
 version = "0.4.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -710,20 +724,6 @@ name = "regex-syntax"
 version = "0.6.27"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "a3f87b73ce11b1619a3c6332f45341e0047173771e8b8b73f87bfeefb7b56244"
-
-[[package]]
-name = "reservewatcher"
-version = "0.1.0"
-dependencies = [
- "color-eyre",
- "cursive",
- "cursive-aligned-view",
- "cursive_table_view",
- "tracing",
- "tracing-subscriber",
- "vrsc-rpc",
- "zmq",
-]
 
 [[package]]
 name = "rustc-demangle"
