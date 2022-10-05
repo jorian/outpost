@@ -1,4 +1,5 @@
 pub mod controller;
+pub mod ui;
 
 use controller::Controller;
 use std::sync::Arc;

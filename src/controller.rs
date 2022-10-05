@@ -2,9 +2,12 @@ use std::sync::{mpsc, Arc};
 
 use tracing::info;
 
+use crate::ui::UI;
+
 pub struct Controller {
     _data: Arc<()>,
     pub c_rx: mpsc::Receiver<ControllerMessage>,
+    pub ui: UI,
 }
 
 impl Controller {
@@ -12,7 +15,11 @@ impl Controller {
         let (c_tx, c_rx) = mpsc::channel::<ControllerMessage>();
         Self::zmq_notify(c_tx);
 
-        Controller { _data, c_rx }
+        Controller {
+            _data,
+            c_rx,
+            ui: UI::new(),
+        }
     }
 
     pub fn start(&self) {
@@ -31,6 +38,7 @@ impl Controller {
 
         info!("ZMQ thread started...");
         let c_tx_clone = c_tx.clone();
+
         std::thread::spawn(move || loop {
             let data = socket.recv_multipart(0).unwrap();
             let tx_hex = data[1]
