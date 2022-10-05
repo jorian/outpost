@@ -10,7 +10,7 @@ fn main() {
 
     let data = Arc::new(());
 
-    let controller = Controller::new(Arc::clone(&data));
+    let mut controller = Controller::new(Arc::clone(&data));
 
     controller.start();
 }
