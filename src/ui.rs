@@ -1,8 +1,10 @@
 use std::sync::mpsc;
 
-use cursive::{
-    views::{Dialog, TextView},
-    CursiveRunnable, CursiveRunner,
+use cursive::{menu::Tree, CursiveRunnable, CursiveRunner};
+
+use crate::{
+    controller::{ControllerMessage, CurrencyMode},
+    verus::Basket,
 };
 
 pub type UIReceiver = mpsc::Receiver<UIMessage>;
@@ -15,16 +17,32 @@ pub struct UI {
 }
 
 impl UI {
-    pub fn new() -> Self {
+    pub fn new(c_tx: mpsc::Sender<ControllerMessage>) -> Self {
         let (ui_tx, ui_rx) = mpsc::channel::<UIMessage>();
         let mut siv = cursive::ncurses().into_runner();
 
-        siv.add_layer(
-            Dialog::new()
-                .title("Hello")
-                .content(TextView::new("Hello, world!"))
-                .button("Quit", |siv| siv.quit()),
+        siv.menubar().add_subtree(
+            "Currency mode",
+            Tree::new()
+                .leaf("Reserve", {
+                    let c_tx_clone = c_tx.clone();
+                    move |_| {
+                        c_tx_clone
+                            .send(ControllerMessage::CurrencyModeChange(CurrencyMode::Reserve))
+                            .unwrap();
+                    }
+                })
+                .leaf("Basket", {
+                    let c_tx_clone = c_tx.clone();
+                    move |_| {
+                        c_tx_clone
+                            .send(ControllerMessage::CurrencyModeChange(CurrencyMode::Basket))
+                            .unwrap();
+                    }
+                }),
         );
+
+        siv.set_autohide_menu(false);
 
         // 2 modes:
         // - reserve currency mode
@@ -63,7 +81,7 @@ impl UI {
 
         while let Some(message) = self.ui_rx.try_iter().next() {
             match message {
-                UIMessage::UpdateReserveOverview(baskets) => {
+                UIMessage::UpdateReserveOverview(_baskets) => {
                     // Need to show:
                     // - name of the basket
                     // - amount of basket currency in circulation
@@ -85,5 +103,3 @@ impl UI {
 pub enum UIMessage {
     UpdateReserveOverview(Vec<Basket>),
 }
-
-pub struct Basket {}
