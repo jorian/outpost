@@ -1,5 +1,6 @@
 pub mod controller;
 pub mod ui;
+pub mod util;
 pub mod verus;
 
 use controller::Controller;
