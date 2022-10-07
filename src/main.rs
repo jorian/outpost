@@ -2,6 +2,7 @@ pub mod controller;
 pub mod ui;
 pub mod util;
 pub mod verus;
+pub mod views;
 
 use controller::Controller;
 use std::sync::Arc;

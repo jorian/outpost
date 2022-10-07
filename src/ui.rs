@@ -1,6 +1,11 @@
 use std::sync::mpsc;
 
-use cursive::{menu::Tree, CursiveRunnable, CursiveRunner};
+use cursive::{
+    menu::Tree,
+    view::Resizable,
+    views::{DummyView, LinearLayout, TextView},
+    CursiveRunnable, CursiveRunner,
+};
 
 use crate::{
     controller::{ControllerMessage, CurrencyMode},
@@ -21,28 +26,13 @@ impl UI {
         let (ui_tx, ui_rx) = mpsc::channel::<UIMessage>();
         let mut siv = cursive::ncurses().into_runner();
 
-        siv.menubar().add_subtree(
-            "Currency mode",
-            Tree::new()
-                .leaf("Reserve", {
-                    let c_tx_clone = c_tx.clone();
-                    move |_| {
-                        c_tx_clone
-                            .send(ControllerMessage::CurrencyModeChange(CurrencyMode::Reserve))
-                            .unwrap();
-                    }
-                })
-                .leaf("Basket", {
-                    let c_tx_clone = c_tx.clone();
-                    move |_| {
-                        c_tx_clone
-                            .send(ControllerMessage::CurrencyModeChange(CurrencyMode::Basket))
-                            .unwrap();
-                    }
-                }),
+        let main_view = LinearLayout::horizontal().child(
+            LinearLayout::vertical()
+                .child(TextView::new("Currency Mode"))
+                .child(DummyView {}.full_height()),
         );
 
-        siv.set_autohide_menu(false);
+        siv.add_fullscreen_layer(main_view);
 
         // 2 modes:
         // - reserve currency mode

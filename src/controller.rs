@@ -5,7 +5,11 @@ use std::{
 
 use tracing::info;
 
-use crate::{ui::UI, util::zmq::*, verus::Currency};
+use crate::{
+    ui::{UIMessage, UI},
+    util::zmq::*,
+    verus::Currency,
+};
 
 pub struct Controller {
     _data: Arc<()>,
@@ -37,6 +41,8 @@ impl Controller {
         }
     }
 
+    pub fn update_selection_screen(&mut self) {}
+
     pub fn start(&mut self) {
         self.ui.siv.set_autorefresh(false);
 
@@ -45,10 +51,6 @@ impl Controller {
                 match message {
                     ControllerMessage::CurrencyModeChange(mode) => {
                         self.currency_mode = mode;
-
-                        // update the selection screen
-
-                        // this forgets any history, unless we keep an array of `selected reserves` and `selected baskets`
                     }
                     ControllerMessage::CurrencySelectionChange(change) => {
                         match self.currency_mode {
