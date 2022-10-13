@@ -2,7 +2,7 @@ use std::sync::mpsc;
 
 use cursive::{
     menu::Tree,
-    view::{Resizable, SizeConstraint},
+    view::{Nameable, Resizable, SizeConstraint},
     views::{Button, DummyView, LinearLayout, Panel, ResizedView, TextArea, TextContent, TextView},
     CursiveRunnable, CursiveRunner,
 };
@@ -38,7 +38,12 @@ impl UI {
                 .title("Selector")
                 .fixed_width(30),
             )
-            .child(Panel::new(ResizedView::with_full_screen(DummyView {})).title("Reserves"));
+            .child(
+                Panel::new(ResizedView::with_full_screen(
+                    Reserves::new().with_name("RESERVES"),
+                ))
+                .title("Reserves"),
+            );
 
         siv.add_fullscreen_layer(main_view);
 
