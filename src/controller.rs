@@ -10,10 +10,11 @@ use crate::{
     util::zmq::*,
     verus::{get_latest_baskets, Basket, Currency},
     views::selector::Selector,
+    SessionData,
 };
 
 pub struct Controller {
-    _data: Arc<()>,
+    _data: Arc<SessionData>,
     pub c_rx: mpsc::Receiver<ControllerMessage>,
     pub ui: UI,
     pub client: vrsc_rpc::Client,
@@ -24,7 +25,7 @@ pub struct Controller {
 }
 
 impl Controller {
-    pub fn new(_data: Arc<()>) -> Self {
+    pub fn new(_data: Arc<SessionData>) -> Self {
         let (c_tx, c_rx) = mpsc::channel::<ControllerMessage>();
         // Self::zmq_tx_notify(c_tx.clone());
         zmq_block_notify(c_tx.clone());

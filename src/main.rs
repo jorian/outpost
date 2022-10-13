@@ -11,7 +11,7 @@ use tracing_subscriber::EnvFilter;
 fn main() {
     logging_setup();
 
-    let data = Arc::new(());
+    let data = Arc::new(SessionData { testnet: true });
 
     let mut controller = Controller::new(Arc::clone(&data));
 
@@ -32,4 +32,8 @@ fn logging_setup() {
     tracing_subscriber::fmt::fmt()
         .with_env_filter(EnvFilter::from_default_env())
         .init();
+}
+
+pub struct SessionData {
+    pub testnet: bool,
 }
