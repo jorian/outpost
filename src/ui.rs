@@ -2,10 +2,11 @@ use std::sync::mpsc;
 
 use cursive::{
     menu::Tree,
-    view::Resizable,
-    views::{DummyView, LinearLayout, TextView},
+    view::{Resizable, SizeConstraint},
+    views::{Button, DummyView, LinearLayout, Panel, ResizedView, TextArea, TextContent, TextView},
     CursiveRunnable, CursiveRunner,
 };
+use cursive_aligned_view::Alignable;
 
 use crate::{
     controller::{ControllerMessage, CurrencyMode},
@@ -27,11 +28,17 @@ impl UI {
         let (ui_tx, ui_rx) = mpsc::channel::<UIMessage>();
         let mut siv = cursive::ncurses().into_runner();
 
-        let main_view = LinearLayout::horizontal().child(
-            LinearLayout::vertical()
-                .child(TextView::new("Currency Mode"))
-                .child(DummyView {}.full_height()),
-        );
+        let main_view = LinearLayout::horizontal()
+            .child(
+                Panel::new(
+                    LinearLayout::vertical()
+                        .child(Button::new("reserves", |_| {}))
+                        .child(DummyView {}.full_height()),
+                )
+                .title("Selector")
+                .fixed_width(30),
+            )
+            .child(Panel::new(ResizedView::with_full_screen(DummyView {})).title("Reserves"));
 
         siv.add_fullscreen_layer(main_view);
 
