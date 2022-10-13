@@ -47,7 +47,9 @@ impl Controller {
     pub fn update_selection_screen(&mut self) {}
 
     pub fn start(&mut self) {
-        self.ui.siv.set_fps(6);
+        self.ui.siv.set_autorefresh(true);
+
+        self.update_baskets();
 
         while self.ui.step() {
             if let Some(message) = self.c_rx.try_iter().next() {
@@ -79,23 +81,7 @@ impl Controller {
                     ControllerMessage::NewBlock(blockhash) => {
                         info!("new block arrived: {}", blockhash);
 
-                        if let Ok(baskets) = get_latest_baskets() {
-                            self.baskets = Arc::new(baskets);
-                            let mode = self
-                                .ui
-                                .siv
-                                .call_on_name("SELECTOR", |selector_view: &mut Selector| {
-                                    selector_view.mode
-                                })
-                                .unwrap();
-
-                            if let Err(e) = self.ui.ui_tx.send(UIMessage::UpdateReserveOverview(
-                                mode,
-                                Arc::clone(&self.baskets),
-                            )) {
-                                error!("UIMessage send error: {:?}", e);
-                            }
-                        }
+                        self.update_baskets();
 
                         // create a Selector view with data that i can query using `self.ui.siv.call_on("SELECTOR_VIEW")`
                         // self.client.get_currency_converters();
@@ -128,6 +114,26 @@ impl Controller {
                         info!("new tx arrived: {}", txid);
                     }
                 }
+            }
+        }
+    }
+
+    pub fn update_baskets(&mut self) {
+        if let Ok(baskets) = get_latest_baskets() {
+            self.baskets = Arc::new(baskets);
+            let mode = self
+                .ui
+                .siv
+                .call_on_name("SELECTOR", |selector_view: &mut Selector| {
+                    selector_view.mode
+                })
+                .unwrap();
+
+            if let Err(e) = self.ui.ui_tx.send(UIMessage::UpdateReserveOverview(
+                mode,
+                Arc::clone(&self.baskets),
+            )) {
+                error!("UIMessage send error: {:?}", e);
             }
         }
     }

@@ -26,6 +26,24 @@ impl Currency for Basket {
     }
 }
 
+impl ToString for Basket {
+    fn to_string(&self) -> String {
+        let mut s = String::new();
+
+        s.push_str(&self.name);
+
+        for reserve_currency in &self._currency_state.reservecurrencies {
+            s.push_str(&format!(
+                "\n-- {}: {}",
+                reserve_currency.currencyid,
+                reserve_currency.reserves.as_vrsc()
+            ));
+        }
+
+        s
+    }
+}
+
 pub fn get_latest_baskets() -> Result<Vec<Basket>, ()> {
     let client = Client::chain("vrsctest", Auth::ConfigFile, None).unwrap();
 

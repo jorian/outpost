@@ -1,6 +1,10 @@
 use std::sync::Arc;
 
-use cursive::{view::ViewWrapper, views::*, View};
+use cursive::{
+    view::{Resizable, ViewWrapper},
+    views::*,
+    View,
+};
 use tracing::debug;
 
 use crate::verus::Basket;
@@ -23,11 +27,18 @@ impl Reserves {
         // if let Ok(_baskets) = new_baskets {
         debug!("{:#?}", baskets);
 
-        
-
         self.view.clear();
-        self.view
-            .add_child(ScrollView::new(TextView::new(format!("{:#?}", baskets))));
+        self.view.add_child(
+            ScrollView::new({
+                let mut ll = LinearLayout::vertical();
+                for basket in baskets.iter() {
+                    ll.add_child(TextView::new(basket.to_string()));
+                }
+
+                ll
+            })
+            .full_width(),
+        );
 
         // get filters from selector
         // show basket in overview
