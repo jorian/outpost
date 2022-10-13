@@ -10,6 +10,7 @@ use cursive::{
 use crate::{
     controller::{ControllerMessage, CurrencyMode},
     verus::Basket,
+    views::reserves::Reserves,
 };
 
 pub type UIReceiver = mpsc::Receiver<UIMessage>;
@@ -71,7 +72,17 @@ impl UI {
 
         while let Some(message) = self.ui_rx.try_iter().next() {
             match message {
-                UIMessage::UpdateReserveOverview(_baskets) => {
+                UIMessage::UpdateReserveOverview => {
+                    let cb_sink = self.siv.cb_sink().clone();
+                    std::thread::spawn(move || {
+                        cb_sink
+                            .send(Box::new(move |s| {
+                                s.call_on_name("RESERVES", |reserves_view: &mut Reserves| {
+                                    reserves_view.update();
+                                });
+                            }))
+                            .unwrap();
+                    });
                     // Need to show:
                     // - name of the basket
                     // - amount of basket currency in circulation
@@ -91,5 +102,5 @@ impl UI {
 }
 
 pub enum UIMessage {
-    UpdateReserveOverview(Vec<Basket>),
+    UpdateReserveOverview,
 }

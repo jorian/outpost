@@ -3,7 +3,7 @@ use std::{
     sync::{mpsc, Arc},
 };
 
-use tracing::info;
+use tracing::{error, info};
 
 use crate::{
     ui::{UIMessage, UI},
@@ -76,10 +76,18 @@ impl Controller {
                     ControllerMessage::NewBlock(blockhash) => {
                         info!("new block arrived: {}", blockhash);
 
-                        // need to get some data from the UI.
-                        // create me own view with data i can query using `self.ui.siv.call_on()`
-                        // or trigger a controllermessage when selecting a new currency and update it here.
+                        if let Err(e) = self.ui.ui_tx.send(UIMessage::UpdateReserveOverview) {
+                            error!("Channel error: {:?}", e);
+                        }
+
+                        // create a Selector view with data that i can query using `self.ui.siv.call_on("SELECTOR_VIEW")`
                         // self.client.get_currency_converters();
+
+                        // call a update method on the reserves view.
+                        // - send UIMessage to update Reserves
+                        // - Reserves queries RPC
+                        // - Reserves calls siv to get latest selector data
+                        // - Reserves uses the selector data to filter
 
                         // how do i know that a specific basket was selected?
                         // - can we have multiple baskets at the same time? why not? (maybe v2)
