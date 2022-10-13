@@ -7,7 +7,14 @@ use cursive::{
 };
 use tracing::debug;
 
-use crate::{controller::ControllerMessage, verus::Basket, views::reserves::Reserves};
+use crate::{
+    controller::ControllerMessage,
+    verus::Basket,
+    views::{
+        reserves::Reserves,
+        selector::{Selector, SelectorMode},
+    },
+};
 
 pub type UIReceiver = mpsc::Receiver<UIMessage>;
 pub type UISender = mpsc::Sender<UIMessage>;
@@ -29,7 +36,7 @@ impl UI {
                     LinearLayout::vertical()
                         .child(DummyView {}.fixed_height(1))
                         .child(Button::new("reserves", |_| {}))
-                        .child(DummyView {}.full_height()),
+                        .child(Selector::new().with_name("SELECTOR").full_height()),
                 )
                 .title("Selector")
                 .fixed_width(30),
@@ -80,7 +87,7 @@ impl UI {
 
         while let Some(message) = self.ui_rx.try_iter().next() {
             match message {
-                UIMessage::UpdateReserveOverview(baskets) => {
+                UIMessage::UpdateReserveOverview(_mode, baskets) => {
                     debug!("update reserve overview");
 
                     let cb_sink = self.siv.cb_sink().clone();
@@ -112,5 +119,5 @@ impl UI {
 }
 
 pub enum UIMessage {
-    UpdateReserveOverview(Arc<Vec<Basket>>),
+    UpdateReserveOverview(SelectorMode, Arc<Vec<Basket>>),
 }

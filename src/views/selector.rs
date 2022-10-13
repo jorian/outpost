@@ -7,14 +7,14 @@ use crate::verus::Basket;
 
 pub struct Selector {
     view: LinearLayout,
-    _mode: SelectorMode,
+    pub mode: SelectorMode,
 }
 
 impl Selector {
     pub fn new() -> impl View {
         Selector {
             view: LinearLayout::horizontal(),
-            _mode: SelectorMode::Baskets,
+            mode: SelectorMode::Baskets,
         }
     }
 
@@ -39,6 +39,7 @@ impl ViewWrapper for Selector {
     cursive::wrap_impl!(self.view: LinearLayout);
 }
 
+#[derive(Clone, Copy)]
 pub enum SelectorMode {
     Reserves,
     Baskets,

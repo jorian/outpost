@@ -9,6 +9,7 @@ use crate::{
     ui::{UIMessage, UI},
     util::zmq::*,
     verus::{get_latest_baskets, Basket, Currency},
+    views::selector::Selector,
 };
 
 pub struct Controller {
@@ -80,11 +81,18 @@ impl Controller {
 
                         if let Ok(baskets) = get_latest_baskets() {
                             self.baskets = Arc::new(baskets);
-                            if let Err(e) = self
+                            let mode = self
                                 .ui
-                                .ui_tx
-                                .send(UIMessage::UpdateReserveOverview(Arc::clone(&self.baskets)))
-                            {
+                                .siv
+                                .call_on_name("SELECTOR", |selector_view: &mut Selector| {
+                                    selector_view.mode
+                                })
+                                .unwrap();
+
+                            if let Err(e) = self.ui.ui_tx.send(UIMessage::UpdateReserveOverview(
+                                mode,
+                                Arc::clone(&self.baskets),
+                            )) {
                                 error!("UIMessage send error: {:?}", e);
                             }
                         }

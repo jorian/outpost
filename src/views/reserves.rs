@@ -23,6 +23,8 @@ impl Reserves {
         // if let Ok(_baskets) = new_baskets {
         debug!("{:#?}", baskets);
 
+        
+
         self.view.clear();
         self.view
             .add_child(ScrollView::new(TextView::new(format!("{:#?}", baskets))));
