@@ -32,14 +32,14 @@ pub fn get_latest_baskets() -> Result<Vec<Basket>, ()> {
     let currencies = client.list_currencies(None).unwrap();
 
     // options:33 for fractional baskets
-    let mut filtered_currencies: Vec<(Address, String)> = currencies
+    let mut filtered_currencies: Vec<(String, Address)> = currencies
         .0
         .into_iter()
         .filter(|currency| [33, 545].contains(&currency.currencydefinition.options))
         .map(|currency| {
             (
+                currency.currencydefinition.fullyqualifiedname,
                 currency.currencydefinition.currencyid,
-                currency.currencydefinition.name,
             )
         })
         .collect();
@@ -53,8 +53,8 @@ pub fn get_latest_baskets() -> Result<Vec<Basket>, ()> {
             .filter(|currency| currency.currencydefinition.options == 545)
             .map(|currency| {
                 (
+                    currency.currencydefinition.fullyqualifiedname,
                     currency.currencydefinition.currencyid,
-                    currency.currencydefinition.name,
                 )
             })
             .collect::<Vec<_>>(),
@@ -66,12 +66,12 @@ pub fn get_latest_baskets() -> Result<Vec<Basket>, ()> {
 
     for currency in &filtered_currencies {
         if let Some(currency_state_result) = client
-            .get_currency_state(&currency.0.to_string())
+            .get_currency_state(&currency.1.to_string())
             .unwrap()
             .first()
         {
             last_currency_states.push(Basket {
-                name: currency.1.to_string(),
+                name: currency.0.to_string(),
                 currency_state: currency_state_result.currencystate.clone(),
             });
         }
