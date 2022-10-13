@@ -28,19 +28,19 @@ impl Currency for Basket {
 
 impl ToString for Basket {
     fn to_string(&self) -> String {
-        let mut s = String::new();
-
-        s.push_str(&self.name);
-
-        for reserve_currency in &self._currency_state.reservecurrencies {
-            s.push_str(&format!(
-                "\n-- {}: {}",
-                reserve_currency.currencyid,
-                reserve_currency.reserves.as_vrsc()
-            ));
-        }
-
-        s
+        format!(
+            "{}\n{}",
+            self.name,
+            String::from(
+                &self
+                    ._currency_state
+                    .reservecurrencies
+                    .iter()
+                    .map(|r| format!("--  {}: {}", r.currencyid, r.reserves.as_vrsc()))
+                    .collect::<Vec<_>>()
+                    .join("\n"),
+            )
+        )
     }
 }
 
