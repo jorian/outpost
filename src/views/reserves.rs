@@ -43,7 +43,10 @@ impl Reserves {
                     for reserve_currency in &basket.currency_state.reservecurrencies {
                         ll.add_child(TextView::new(to_styled_string(&format!(
                             "-- {}: {:012.8} | {:016.8}",
-                            reserve_currency.currencyid,
+                            basket
+                                .currencynames
+                                .get(&reserve_currency.currencyid)
+                                .unwrap_or(&reserve_currency.currencyid.to_string()),
                             reserve_currency.reserves.as_vrsc() / vrsc.reserves.as_vrsc(),
                             reserve_currency.reserves.as_vrsc()
                         ))));
