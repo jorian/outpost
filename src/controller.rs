@@ -8,7 +8,7 @@ use tracing::{error, info};
 use crate::{
     ui::{UIMessage, UI},
     util::zmq::*,
-    verus::Currency,
+    verus::{get_latest_baskets, Basket, Currency},
 };
 
 pub struct Controller {
@@ -19,6 +19,7 @@ pub struct Controller {
     pub currency_mode: CurrencyMode,
     selected_reserves: HashMap<String, Box<dyn Currency>>,
     selected_baskets: HashMap<String, Box<dyn Currency>>,
+    pub baskets: Arc<Vec<Basket>>,
 }
 
 impl Controller {
@@ -38,13 +39,14 @@ impl Controller {
             currency_mode: CurrencyMode::Basket,
             selected_baskets: HashMap::new(),
             selected_reserves: HashMap::new(),
+            baskets: Arc::new(vec![]),
         }
     }
 
     pub fn update_selection_screen(&mut self) {}
 
     pub fn start(&mut self) {
-        self.ui.siv.set_autorefresh(false);
+        self.ui.siv.set_fps(6);
 
         while self.ui.step() {
             if let Some(message) = self.c_rx.try_iter().next() {
@@ -76,8 +78,15 @@ impl Controller {
                     ControllerMessage::NewBlock(blockhash) => {
                         info!("new block arrived: {}", blockhash);
 
-                        if let Err(e) = self.ui.ui_tx.send(UIMessage::UpdateReserveOverview) {
-                            error!("Channel error: {:?}", e);
+                        if let Ok(baskets) = get_latest_baskets() {
+                            self.baskets = Arc::new(baskets);
+                            if let Err(e) = self
+                                .ui
+                                .ui_tx
+                                .send(UIMessage::UpdateReserveOverview(Arc::clone(&self.baskets)))
+                            {
+                                error!("UIMessage send error: {:?}", e);
+                            }
                         }
 
                         // create a Selector view with data that i can query using `self.ui.siv.call_on("SELECTOR_VIEW")`

@@ -1,6 +1,6 @@
 use std::sync::mpsc;
 
-use tracing::{debug, info};
+use tracing::{debug, error, info};
 use zmq::Socket;
 
 use crate::controller::ControllerMessage;
@@ -44,9 +44,9 @@ pub fn zmq_block_notify(c_tx: mpsc::Sender<ControllerMessage>) {
 
         debug!("new block: {}", &block_hash);
 
-        c_tx_clone
-            .send(ControllerMessage::NewBlock(block_hash))
-            .unwrap();
+        if let Err(e) = c_tx_clone.send(ControllerMessage::NewBlock(block_hash)) {
+            error!("NewBlock send error: {:?}", e)
+        }
     });
 }
 

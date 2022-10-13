@@ -1,45 +1,38 @@
-use cursive::{
-    theme::{BaseColor, Color},
-    utils::markup::StyledString,
-    view::ViewWrapper,
-    views::{LinearLayout, Panel},
-    View,
-};
+use std::sync::Arc;
+
+use cursive::{view::ViewWrapper, views::*, View};
 use tracing::debug;
 
-use crate::verus::{self, Basket};
+use crate::verus::Basket;
 
 pub struct Reserves {
-    view: Panel<LinearLayout>,
-    baskets: Vec<Basket>,
+    view: LinearLayout,
 }
 
 impl Reserves {
     pub fn new() -> impl View {
         Reserves {
-            view: Panel::new(LinearLayout::horizontal()).title("Reserves"),
-            baskets: vec![],
+            view: LinearLayout::horizontal(),
         }
     }
 
-    pub fn update(&mut self) {
-        let new_baskets = verus::get_latest_baskets();
+    pub fn update(&mut self, baskets: Arc<Vec<Basket>>) {
+        debug!("update reserves overview");
+        // let new_baskets = verus::get_latest_baskets();
 
-        if let Ok(_baskets) = new_baskets {
-            debug!("{:?}", _baskets);
-            // get filters from selector
-            // show basket in overview
-        }
+        // if let Ok(_baskets) = new_baskets {
+        debug!("{:#?}", baskets);
+
+        self.view.clear();
+        self.view
+            .add_child(ScrollView::new(TextView::new(format!("{:#?}", baskets))));
+
+        // get filters from selector
+        // show basket in overview
+        // }
     }
 }
 
 impl ViewWrapper for Reserves {
-    cursive::wrap_impl!(self.view: Panel<LinearLayout>);
-}
-
-fn styled_string(text: &str, color: Color) -> StyledString {
-    let mut s = StyledString::new();
-    s.append(StyledString::styled(format!("{}", text), color));
-
-    s
+    cursive::wrap_impl!(self.view: LinearLayout);
 }

@@ -1,18 +1,13 @@
-use std::sync::mpsc;
+use std::sync::{mpsc, Arc};
 
 use cursive::{
-    menu::Tree,
-    view::{Nameable, Resizable, SizeConstraint},
-    views::{Button, DummyView, LinearLayout, Panel, ResizedView, TextArea, TextContent, TextView},
+    view::{Nameable, Resizable},
+    views::{Button, DummyView, LinearLayout, Panel, ResizedView},
     CursiveRunnable, CursiveRunner,
 };
-use cursive_aligned_view::Alignable;
+use tracing::debug;
 
-use crate::{
-    controller::{ControllerMessage, CurrencyMode},
-    verus::Basket,
-    views::reserves::Reserves,
-};
+use crate::{controller::ControllerMessage, verus::Basket, views::reserves::Reserves};
 
 pub type UIReceiver = mpsc::Receiver<UIMessage>;
 pub type UISender = mpsc::Sender<UIMessage>;
@@ -24,7 +19,7 @@ pub struct UI {
 }
 
 impl UI {
-    pub fn new(c_tx: mpsc::Sender<ControllerMessage>) -> Self {
+    pub fn new(_c_tx: mpsc::Sender<ControllerMessage>) -> Self {
         let (ui_tx, ui_rx) = mpsc::channel::<UIMessage>();
         let mut siv = cursive::ncurses().into_runner();
 
@@ -32,6 +27,7 @@ impl UI {
             .child(
                 Panel::new(
                     LinearLayout::vertical()
+                        .child(DummyView {}.fixed_height(1))
                         .child(Button::new("reserves", |_| {}))
                         .child(DummyView {}.full_height()),
                 )
@@ -84,13 +80,15 @@ impl UI {
 
         while let Some(message) = self.ui_rx.try_iter().next() {
             match message {
-                UIMessage::UpdateReserveOverview => {
+                UIMessage::UpdateReserveOverview(baskets) => {
+                    debug!("update reserve overview");
+
                     let cb_sink = self.siv.cb_sink().clone();
                     std::thread::spawn(move || {
                         cb_sink
                             .send(Box::new(move |s| {
                                 s.call_on_name("RESERVES", |reserves_view: &mut Reserves| {
-                                    reserves_view.update();
+                                    reserves_view.update(baskets);
                                 });
                             }))
                             .unwrap();
@@ -107,12 +105,12 @@ impl UI {
             }
         }
 
-        self.siv.run();
+        self.siv.step();
 
         true
     }
 }
 
 pub enum UIMessage {
-    UpdateReserveOverview,
+    UpdateReserveOverview(Arc<Vec<Basket>>),
 }

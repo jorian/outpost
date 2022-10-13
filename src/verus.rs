@@ -1,9 +1,9 @@
-use vrsc_rpc::{json::vrsc::Address, Auth, Client, RpcApi};
+use vrsc_rpc::{Auth, Client, RpcApi};
 
 #[derive(Debug)]
 pub struct Basket {
     name: String,
-    currency_state: vrsc_rpc::json::CurrencyState,
+    _currency_state: vrsc_rpc::json::CurrencyState,
 }
 
 pub trait Currency: Send {
@@ -47,7 +47,7 @@ pub fn get_latest_baskets() -> Result<Vec<Basket>, ()> {
         if let Some(currency_state_result) = client.get_currency_state(&currency).unwrap().first() {
             last_currency_states.push(Basket {
                 name: currency.to_string(),
-                currency_state: currency_state_result.currencystate.clone(),
+                _currency_state: currency_state_result.currencystate.clone(),
             });
         }
     }
