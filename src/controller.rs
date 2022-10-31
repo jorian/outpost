@@ -8,7 +8,7 @@ use tracing::{error, info};
 use crate::{
     ui::{UIMessage, UI},
     util::zmq::*,
-    verus::{get_latest_baskets, Basket, Currency},
+    verus::{Basket, Currency, Verus},
     views::selector::Selector,
     SessionData,
 };
@@ -17,31 +17,27 @@ pub struct Controller {
     _data: Arc<SessionData>,
     pub c_rx: mpsc::Receiver<ControllerMessage>,
     pub ui: UI,
-    pub client: vrsc_rpc::Client,
     pub currency_mode: CurrencyMode,
     selected_reserves: HashMap<String, Box<dyn Currency>>,
     selected_baskets: HashMap<String, Box<dyn Currency>>,
     pub baskets: Arc<Vec<Basket>>,
+    pub verus: Verus,
 }
 
 impl Controller {
     pub fn new(_data: Arc<SessionData>) -> Self {
         let (c_tx, c_rx) = mpsc::channel::<ControllerMessage>();
-        // Self::zmq_tx_notify(c_tx.clone());
         zmq_block_notify(c_tx.clone());
-
-        let client = vrsc_rpc::Client::chain("vrsctest", vrsc_rpc::Auth::ConfigFile, None)
-            .expect("a verus daemon");
 
         Controller {
             _data,
             c_rx,
             ui: UI::new(c_tx.clone()),
-            client,
             currency_mode: CurrencyMode::Basket,
             selected_baskets: HashMap::new(),
             selected_reserves: HashMap::new(),
             baskets: Arc::new(vec![]),
+            verus: Verus::new(),
         }
     }
 
@@ -120,7 +116,7 @@ impl Controller {
     }
 
     pub fn update_baskets(&mut self) {
-        if let Ok(baskets) = get_latest_baskets() {
+        if let Ok(baskets) = self.verus.get_latest_baskets() {
             self.baskets = Arc::new(baskets);
             let mode = self
                 .ui
