@@ -39,15 +39,24 @@ impl Reserves {
                         .find(|b| &b.currencyid.to_string() == "iJhCezBExJHvtyH3fGhNnt2NhU4Ztkf2yq")
                         .unwrap(); // all currency baskets have VRSC in its reserves.
 
-                    ll.add_child(TextView::new(&basket.name));
+                    ll.add_child(TextView::new({
+                        let mut ss = StyledString::new();
+                        ss.append_styled(
+                            String::from(&basket.name),
+                            Style::from(Color::from_256colors(32)),
+                        );
+
+                        ss
+                    }));
                     for reserve_currency in &basket.currency_state.reservecurrencies {
                         ll.add_child(TextView::new(to_styled_string(&format!(
-                            "-- {}: {:012.8} | {:016.8}",
+                            "{}: {:012.8} | {:016.8}",
                             reserve_currency.currencyid,
                             reserve_currency.reserves.as_vrsc() / vrsc.reserves.as_vrsc(),
                             reserve_currency.reserves.as_vrsc()
                         ))));
                     }
+                    ll.add_child(DummyView {}.fixed_height(1));
                 }
 
                 ll
@@ -62,7 +71,7 @@ impl ViewWrapper for Reserves {
 }
 
 fn to_styled_string(s: &str) -> StyledString {
-    let sum: u32 = s[3..22].bytes().fold(0, |acc, sum| acc + sum as u32);
+    let sum: u32 = s[0..2].bytes().fold(0, |acc, sum| acc + sum as u32);
     let mut ss = StyledString::new();
     ss.append_styled(
         s,
