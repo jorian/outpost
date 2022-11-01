@@ -1,8 +1,6 @@
 use std::sync::Arc;
 
 use cursive::{
-    theme::{Color, Style},
-    utils::markup::StyledString,
     view::{Resizable, ViewWrapper},
     views::*,
     View,
@@ -47,15 +45,4 @@ impl Reserves {
 
 impl ViewWrapper for Reserves {
     cursive::wrap_impl!(self.view: ResizedView<LinearLayout>);
-}
-
-fn to_styled_string(s: &str) -> StyledString {
-    let sum: u32 = s[0..2].bytes().fold(0, |acc, sum| acc + sum as u32);
-    let mut ss = StyledString::new();
-    ss.append_styled(
-        s,
-        Style::from(Color::from_256colors(233 + (sum % 15) as u8)),
-    );
-
-    ss
 }
