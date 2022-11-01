@@ -29,6 +29,7 @@ impl UI {
     pub fn new(_c_tx: mpsc::Sender<ControllerMessage>) -> Self {
         let (ui_tx, ui_rx) = mpsc::channel::<UIMessage>();
         let mut siv = cursive::ncurses().into_runner();
+        siv.update_theme(|theme| theme.shadow = false);
 
         let main_view = LinearLayout::horizontal()
             .child(
