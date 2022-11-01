@@ -27,6 +27,9 @@ impl View for ReserveTable {
         printer.print((0, 1), "0");
     }
 
+    // when drawing this table, i need to know how many currencies to show in order to calculate the required height of the view.
+    // that means that this table needs to have state on which currencies it should show.
+    // that means that the initiation of this table should accept a list of currencies.
     fn required_size(&mut self, constraint: cursive::Vec2) -> cursive::Vec2 {
         Vec2::new(3, 3)
     }

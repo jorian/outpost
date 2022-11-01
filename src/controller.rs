@@ -44,7 +44,7 @@ impl Controller {
     pub fn update_selection_screen(&mut self) {}
 
     pub fn start(&mut self) {
-        self.ui.siv.set_autorefresh(true);
+        self.ui.siv.set_autorefresh(false);
 
         self.update_baskets();
 
