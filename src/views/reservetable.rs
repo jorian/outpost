@@ -1,3 +1,5 @@
+use std::ops::Sub;
+
 use cursive::{
     theme::{self, Color, Style},
     utils::{markup::StyledString, span::SpannedStr},
@@ -24,35 +26,42 @@ impl View for ReserveTable {
         // ----------------------- VRSC-GBP ----------------------- Price ----------- Weight
         // iJhCezBExJHvtyH3fGhNnt2NhU4Ztkf2yq                001.00000000 | 0200000.00273192
 
-        let eofp = dbg!(((printer.output_size.x - 26) / 2) - (&self.reserve_name.len() / 2));
+        let eofp = dbg!(((printer.output_size.x.saturating_sub(26)) / 2)
+            .saturating_sub(&self.reserve_name.len() / 2));
         let bolp = dbg!(eofp + &self.reserve_name.len());
 
-        for i in 0..(eofp - 1) {
+        for i in 0..(eofp.saturating_sub(1)) {
             printer.print((i, 0), "-");
         }
 
         printer.with_color(Color::from_256colors(32).into(), |printer| {
-            printer.print((eofp - 1, 0), &format!(" {} ", &self.reserve_name));
+            printer.print(
+                (eofp.saturating_sub(1), 0),
+                &format!(" {} ", &self.reserve_name),
+            );
         });
 
-        for i in (bolp + 1)..(printer.output_size.x - 26).max(25) {
+        for i in (bolp + 1)..(printer.output_size.x.saturating_sub(26)) {
             printer.print((i, 0), "-");
         }
         printer.with_color(Color::from_256colors(32).into(), |printer| {
-            printer.print((printer.output_size.x - 25, 0), "Price");
+            printer.print((printer.output_size.x.saturating_sub(25), 0), "Price");
         });
 
-        printer.print((printer.output_size.x - 20, 0), " ----------- ");
+        printer.print(
+            (printer.output_size.x.saturating_sub(20), 0),
+            " ----------- ",
+        );
 
         printer.with_color(Color::from_256colors(32).into(), |printer| {
-            printer.print((printer.output_size.x - 7, 0), "Weight");
+            printer.print((printer.output_size.x.saturating_sub(7), 0), "Weight");
         });
 
         for (i, rc) in self.reserve_currencies.iter().enumerate() {
             printer.print((0, i + 1), &rc.currencyid.to_string());
             printer.print(
                 // 30 should be calcualted
-                (printer.output_size.x - 32, i + 1),
+                (printer.output_size.x.saturating_sub(32), i + 1),
                 &format!(
                     "{:012.8} | {:016.8}",
                     rc.reserves.as_vrsc() / vrsc.reserves.as_vrsc(),
