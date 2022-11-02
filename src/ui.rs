@@ -2,17 +2,16 @@ use std::sync::{mpsc, Arc};
 
 use cursive::{
     view::{Nameable, Resizable},
-    views::{Button, Checkbox, DummyView, LinearLayout, Panel, ResizedView, SelectView},
+    views::{DummyView, LinearLayout, Panel, ResizedView, SelectView},
     CursiveRunnable, CursiveRunner,
 };
 use tracing::debug;
-use tracing_subscriber::layer::Filter;
 
 use crate::{
     controller::ControllerMessage,
     verus::Basket,
     views::{
-        filterbox::FilterBox,
+        filterbox::{self, FilterBox},
         reserves::Reserves,
         selector::{Selector, SelectorMode},
     },
@@ -27,6 +26,33 @@ pub struct UI {
     pub ui_tx: UISender,
 }
 
+// 2 modes:
+// - reserve currency mode
+// - basket mode
+
+// |--------------------------------------------------------------------------------------------------|
+// | ______menubar___________________________________________________________________________________ |
+// |              |                                                                                   |
+// |  [ ] VRSC    |   VRSC-ETH                                                                        |
+// |  [ ] BTC     |   -> VRSC                                                       1.23456789        |
+// |  [x] vETH    |   -> vETH                                                       0.12345678        |
+// |  [ ] USDc    |                                                                                   |
+// |              |                                                                                   |
+// |              |                                                                                   |
+// |              |                                                                                   |
+// |              |                                                                                   |
+// |              |                                                                                   |
+// |              |                                                                                   |
+// |              |                                                                                   |
+// |              |                                                                                   |
+// |              |                                                                                   |
+// |              |                                                                                   |
+// |              |                                                                                   |
+// |              |                                                                                   |
+// |              |                                                                                   |
+// |              |                                                                                   |
+// |--------------------------------------------------------------------------------------------------|
+
 impl UI {
     pub fn new(_c_tx: mpsc::Sender<ControllerMessage>) -> Self {
         let (ui_tx, ui_rx) = mpsc::channel::<UIMessage>();
@@ -38,7 +64,7 @@ impl UI {
                 Panel::new(
                     LinearLayout::vertical()
                         .child(DummyView {}.fixed_height(1))
-                        .child(FilterBox::new("Test 1".to_string()))
+                        .child(FilterBox::new("Test 1".to_string()).with_name("filterbox"))
                         .child(Selector::new().with_name("SELECTOR").full_height()),
                 )
                 .title("Selector")
@@ -52,33 +78,6 @@ impl UI {
             );
 
         siv.add_fullscreen_layer(main_view);
-
-        // 2 modes:
-        // - reserve currency mode
-        // - basket mode
-
-        // |--------------------------------------------------------------------------------------------------|
-        // | ______menubar___________________________________________________________________________________ |
-        // |              |                                                                                   |
-        // |  [ ] VRSC    |   VRSC-ETH                                                                        |
-        // |  [ ] BTC     |   -> VRSC                                                       1.23456789        |
-        // |  [x] vETH    |   -> vETH                                                       0.12345678        |
-        // |  [ ] USDc    |                                                                                   |
-        // |              |                                                                                   |
-        // |              |                                                                                   |
-        // |              |                                                                                   |
-        // |              |                                                                                   |
-        // |              |                                                                                   |
-        // |              |                                                                                   |
-        // |              |                                                                                   |
-        // |              |                                                                                   |
-        // |              |                                                                                   |
-        // |              |                                                                                   |
-        // |              |                                                                                   |
-        // |              |                                                                                   |
-        // |              |                                                                                   |
-        // |              |                                                                                   |
-        // |--------------------------------------------------------------------------------------------------|
 
         UI { siv, ui_rx, ui_tx }
     }
@@ -97,10 +96,10 @@ impl UI {
                     std::thread::spawn(move || {
                         cb_sink
                             .send(Box::new(move |s| {
-                                s.call_on_all_named("filterbox", |sv: &mut SelectView| {
-                                    // if filterbox.with_viewis_checked() {
-                                    //     dbg!(&filterbox.name);
-                                    // }
+                                s.call_on_all_named("filterbox", |filterbox: &mut FilterBox| {
+                                    if filterbox.checkbox.is_checked() {
+                                        dbg!(&filterbox.name);
+                                    }
                                 });
 
                                 s.call_on_name("RESERVES", |reserves_view: &mut Reserves| {
