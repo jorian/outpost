@@ -2,15 +2,17 @@ use std::sync::{mpsc, Arc};
 
 use cursive::{
     view::{Nameable, Resizable},
-    views::{Button, DummyView, LinearLayout, Panel, ResizedView},
+    views::{Button, Checkbox, DummyView, LinearLayout, Panel, ResizedView, SelectView},
     CursiveRunnable, CursiveRunner,
 };
 use tracing::debug;
+use tracing_subscriber::layer::Filter;
 
 use crate::{
     controller::ControllerMessage,
     verus::Basket,
     views::{
+        filterbox::FilterBox,
         reserves::Reserves,
         selector::{Selector, SelectorMode},
     },
@@ -36,7 +38,7 @@ impl UI {
                 Panel::new(
                     LinearLayout::vertical()
                         .child(DummyView {}.fixed_height(1))
-                        .child(Button::new("reserves", |_| {}))
+                        .child(FilterBox::new("Test 1".to_string()))
                         .child(Selector::new().with_name("SELECTOR").full_height()),
                 )
                 .title("Selector")
@@ -95,6 +97,12 @@ impl UI {
                     std::thread::spawn(move || {
                         cb_sink
                             .send(Box::new(move |s| {
+                                s.call_on_all_named("filterbox", |sv: &mut SelectView| {
+                                    // if filterbox.with_viewis_checked() {
+                                    //     dbg!(&filterbox.name);
+                                    // }
+                                });
+
                                 s.call_on_name("RESERVES", |reserves_view: &mut Reserves| {
                                     reserves_view.update(baskets);
                                 });
