@@ -1,4 +1,4 @@
-use std::sync::{mpsc, Arc};
+use std::sync::mpsc;
 
 use tracing::{error, info};
 use vrsc_rpc::json::ReserveCurrency;
@@ -7,11 +7,9 @@ use crate::{
     ui::{UIMessage, UI},
     util::zmq::*,
     verus::{Basket, Verus},
-    SessionData,
 };
 
 pub struct Controller {
-    _data: Arc<SessionData>,
     pub c_rx: mpsc::Receiver<ControllerMessage>,
     pub ui: UI,
     pub baskets: Vec<Basket>,
@@ -20,12 +18,11 @@ pub struct Controller {
 }
 
 impl Controller {
-    pub fn new(_data: Arc<SessionData>) -> Self {
+    pub fn new() -> Self {
         let (c_tx, c_rx) = mpsc::channel::<ControllerMessage>();
         zmq_block_notify(c_tx.clone());
 
         Controller {
-            _data,
             c_rx,
             ui: UI::new(c_tx.clone()),
             baskets: vec![],
@@ -48,25 +45,6 @@ impl Controller {
                         info!("Filter changed");
 
                         self.update_baskets();
-                        // match self.currency_mode {
-                        //     // need to handle select + deselect
-                        //     CurrencyMode::Basket => match change {
-                        //         CurrencyChange::Add(basket) => {
-                        //             self.selected_baskets.insert(basket.name(), basket);
-                        //         }
-                        //         CurrencyChange::Remove(basket) => {
-                        //             self.selected_baskets.remove(&basket.name());
-                        //         }
-                        //     },
-                        //     CurrencyMode::Reserve => match change {
-                        //         CurrencyChange::Add(reserve) => {
-                        //             self.selected_reserves.insert(reserve.name(), reserve);
-                        //         }
-                        //         CurrencyChange::Remove(reserve) => {
-                        //             self.selected_reserves.remove(&reserve.name());
-                        //         }
-                        //     },
-                        // }
                     }
                     ControllerMessage::NewBlock(blockhash) => {
                         info!("new block arrived: {}", blockhash);
@@ -109,7 +87,6 @@ impl Controller {
     }
 
     pub fn update_selection_screen(&mut self) {
-        // get all reserve_currencies.
         if let Ok(currencies) = self.verus.get_latest_currencies() {
             self.currencies = currencies;
         }
@@ -131,20 +108,8 @@ impl Controller {
 }
 
 pub enum ControllerMessage {
-    // NewBlock(blockhash)
     NewBlock(String),
-    // NewTransaction(txid),
     NewTransaction(String),
     CurrencySelectionChange,
     CurrencyModeChange,
 }
-
-pub enum CurrencyMode {
-    Basket,
-    Reserve,
-}
-
-// pub enum CurrencyChange {
-//     Add(Box<dyn Currency>),
-//     Remove(Box<dyn Currency>),
-// }

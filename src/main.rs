@@ -5,15 +5,12 @@ pub mod verus;
 pub mod views;
 
 use controller::Controller;
-use std::sync::Arc;
 use tracing_subscriber::EnvFilter;
 
 fn main() {
     logging_setup();
 
-    let data = Arc::new(SessionData { testnet: true });
-
-    let mut controller = Controller::new(Arc::clone(&data));
+    let mut controller = Controller::new();
 
     controller.start();
 }
@@ -32,8 +29,4 @@ fn logging_setup() {
     tracing_subscriber::fmt::fmt()
         .with_env_filter(EnvFilter::from_default_env())
         .init();
-}
-
-pub struct SessionData {
-    pub testnet: bool,
 }

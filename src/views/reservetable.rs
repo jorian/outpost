@@ -6,8 +6,6 @@ pub struct ReserveTable {
     pub basket: Basket,
 }
 
-// ----------------------- VRSC-GBP ----------------------- Price ----------- Weight
-// iJhCezBExJHvtyH3fGhNnt2NhU4Ztkf2yq                001.00000000 | 0200000.00273192
 impl View for ReserveTable {
     fn draw(&self, printer: &cursive::Printer) {
         // title draw:
