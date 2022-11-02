@@ -30,7 +30,7 @@ impl ViewWrapper for FilterBox {
         printer.print((4, 0), &self.currency.currencydefinition.name);
     }
 
-    fn wrap_required_size(&mut self, req: cursive::Vec2) -> cursive::Vec2 {
+    fn wrap_required_size(&mut self, _req: cursive::Vec2) -> cursive::Vec2 {
         Vec2::new(4 + self.currency.currencydefinition.name.len(), 1)
     }
 }

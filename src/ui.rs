@@ -2,11 +2,11 @@ use std::sync::mpsc;
 
 use cursive::{
     view::{Nameable, Resizable},
-    views::{DummyView, LinearLayout, Panel, ResizedView},
+    views::{LinearLayout, Panel, ResizedView},
     CursiveRunnable, CursiveRunner,
 };
 use tracing::debug;
-use vrsc_rpc::json::{Currency, ReserveCurrency};
+use vrsc_rpc::json::Currency;
 
 use crate::{
     controller::ControllerMessage,

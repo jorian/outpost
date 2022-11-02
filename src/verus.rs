@@ -1,7 +1,7 @@
 use std::collections::HashMap;
 
 use vrsc_rpc::{
-    json::{vrsc::Address, Currency, ReserveCurrency},
+    json::{vrsc::Address, Currency},
     Auth, Client, RpcApi,
 };
 

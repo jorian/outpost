@@ -1,4 +1,5 @@
 use cursive::{
+    reexports::log::debug,
     view::{Resizable, ViewWrapper},
     views::*,
     View,
@@ -19,7 +20,7 @@ impl Reserves {
         }
     }
 
-    pub fn update(&mut self, baskets: Vec<Basket>, _checked_currencies: Vec<Currency>) {
+    pub fn update(&mut self, baskets: Vec<Basket>, checked_currencies: Vec<Currency>) {
         info!("{} baskets retrieved", baskets.len());
 
         self.view.get_inner_mut().clear();
@@ -27,8 +28,20 @@ impl Reserves {
             ScrollView::new({
                 let mut ll = LinearLayout::vertical();
 
-                for basket in baskets.into_iter() {
-                    ll.add_child(ReserveTable::new(basket));
+                // apply the filter:
+                for mut basket in baskets.into_iter() {
+                    debug!("{:?}", &checked_currencies);
+                    basket.currency_state.reservecurrencies.retain(|rc| {
+                        checked_currencies
+                            .iter()
+                            .any(|cur| cur.currencydefinition.currencyid == rc.currencyid)
+                            || rc.currencyid.to_string()
+                                == "iJhCezBExJHvtyH3fGhNnt2NhU4Ztkf2yq".to_string()
+                    });
+                    // debug!("{:?}", &basket);
+                    if basket.currency_state.reservecurrencies.len() > 1 {
+                        ll.add_child(ReserveTable::new(basket));
+                    }
                 }
 
                 ll
