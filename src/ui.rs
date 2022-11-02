@@ -6,6 +6,7 @@ use cursive::{
     CursiveRunnable, CursiveRunner,
 };
 use tracing::debug;
+use vrsc_rpc::json::ReserveCurrency;
 
 use crate::{
     controller::ControllerMessage,
@@ -54,7 +55,7 @@ pub struct UI {
 // |--------------------------------------------------------------------------------------------------|
 
 impl UI {
-    pub fn new(_c_tx: mpsc::Sender<ControllerMessage>) -> Self {
+    pub fn new(c_tx: mpsc::Sender<ControllerMessage>) -> Self {
         let (ui_tx, ui_rx) = mpsc::channel::<UIMessage>();
         let mut siv = cursive::ncurses().into_runner();
         siv.update_theme(|theme| theme.shadow = false);
@@ -64,7 +65,14 @@ impl UI {
                 Panel::new(
                     LinearLayout::vertical()
                         .child(DummyView {}.fixed_height(1))
-                        .child(FilterBox::new("Test 1".to_string()).with_name("filterbox"))
+                        .child(
+                            FilterBox::new("Test 1".to_string(), c_tx.clone())
+                                .with_name("filterbox"),
+                        )
+                        .child(
+                            FilterBox::new("Test 2".to_string(), c_tx.clone())
+                                .with_name("filterbox"),
+                        )
                         .child(Selector::new().with_name("SELECTOR").full_height()),
                 )
                 .title("Selector")
@@ -89,21 +97,26 @@ impl UI {
 
         while let Some(message) = self.ui_rx.try_iter().next() {
             match message {
-                UIMessage::UpdateReserveOverview(_mode, baskets) => {
+                UIMessage::UpdateReserveOverview(baskets) => {
                     debug!("update reserve overview");
 
                     let cb_sink = self.siv.cb_sink().clone();
                     std::thread::spawn(move || {
                         cb_sink
                             .send(Box::new(move |s| {
+                                let mut checked_currencies = vec![];
+
                                 s.call_on_all_named("filterbox", |filterbox: &mut FilterBox| {
                                     if filterbox.checkbox.is_checked() {
-                                        dbg!(&filterbox.name);
+                                        debug!("{}", &filterbox.name);
+                                        checked_currencies.push(filterbox.name.clone());
                                     }
                                 });
 
+                                debug!("{:?}", &checked_currencies);
+
                                 s.call_on_name("RESERVES", |reserves_view: &mut Reserves| {
-                                    reserves_view.update(baskets);
+                                    reserves_view.update(baskets, checked_currencies);
                                 });
                             }))
                             .unwrap();
@@ -117,6 +130,11 @@ impl UI {
                     // clicking on the name of the basket should open up a layer with all the information of the basket and all its currencies
                     // the selection should just be a filter of the baskets
                 }
+                UIMessage::UpdateSelectorCurrencies(vec) => {
+                    let cb_sink = self.siv.cb_sink().clone();
+
+                    std::thread::spawn(move || cb_sink.send(Box::new(move |s| {})));
+                }
             }
         }
 
@@ -127,5 +145,6 @@ impl UI {
 }
 
 pub enum UIMessage {
-    UpdateReserveOverview(SelectorMode, Arc<Vec<Basket>>),
+    UpdateReserveOverview(Arc<Vec<Basket>>),
+    UpdateSelectorCurrencies(Vec<ReserveCurrency>),
 }

@@ -20,9 +20,9 @@ impl Reserves {
         }
     }
 
-    pub fn update(&mut self, baskets: Arc<Vec<Basket>>) {
+    pub fn update(&mut self, baskets: Arc<Vec<Basket>>, checked_currencies: Vec<String>) {
         info!("{} baskets retrieved", baskets.len());
-        debug!("{:?}", baskets);
+        // debug!("{:?}", baskets);
 
         self.view.get_inner_mut().clear();
         self.view.get_inner_mut().add_child(

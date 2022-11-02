@@ -54,26 +54,29 @@ impl Controller {
                     ControllerMessage::CurrencyModeChange(mode) => {
                         self.currency_mode = mode;
                     }
-                    ControllerMessage::CurrencySelectionChange(change) => {
-                        match self.currency_mode {
-                            // need to handle select + deselect
-                            CurrencyMode::Basket => match change {
-                                CurrencyChange::Add(basket) => {
-                                    self.selected_baskets.insert(basket.name(), basket);
-                                }
-                                CurrencyChange::Remove(basket) => {
-                                    self.selected_baskets.remove(&basket.name());
-                                }
-                            },
-                            CurrencyMode::Reserve => match change {
-                                CurrencyChange::Add(reserve) => {
-                                    self.selected_reserves.insert(reserve.name(), reserve);
-                                }
-                                CurrencyChange::Remove(reserve) => {
-                                    self.selected_reserves.remove(&reserve.name());
-                                }
-                            },
-                        }
+                    ControllerMessage::CurrencySelectionChange => {
+                        info!("Filter changed");
+
+                        self.update_baskets();
+                        // match self.currency_mode {
+                        //     // need to handle select + deselect
+                        //     CurrencyMode::Basket => match change {
+                        //         CurrencyChange::Add(basket) => {
+                        //             self.selected_baskets.insert(basket.name(), basket);
+                        //         }
+                        //         CurrencyChange::Remove(basket) => {
+                        //             self.selected_baskets.remove(&basket.name());
+                        //         }
+                        //     },
+                        //     CurrencyMode::Reserve => match change {
+                        //         CurrencyChange::Add(reserve) => {
+                        //             self.selected_reserves.insert(reserve.name(), reserve);
+                        //         }
+                        //         CurrencyChange::Remove(reserve) => {
+                        //             self.selected_reserves.remove(&reserve.name());
+                        //         }
+                        //     },
+                        // }
                     }
                     ControllerMessage::NewBlock(blockhash) => {
                         info!("new block arrived: {}", blockhash);
@@ -118,18 +121,12 @@ impl Controller {
     pub fn update_baskets(&mut self) {
         if let Ok(baskets) = self.verus.get_latest_baskets() {
             self.baskets = Arc::new(baskets);
-            let mode = self
-                .ui
-                .siv
-                .call_on_name("SELECTOR", |selector_view: &mut Selector| {
-                    selector_view.mode
-                })
-                .unwrap();
 
-            if let Err(e) = self.ui.ui_tx.send(UIMessage::UpdateReserveOverview(
-                mode,
-                Arc::clone(&self.baskets),
-            )) {
+            if let Err(e) = self
+                .ui
+                .ui_tx
+                .send(UIMessage::UpdateReserveOverview(Arc::clone(&self.baskets)))
+            {
                 error!("UIMessage send error: {:?}", e);
             }
         }
@@ -141,7 +138,7 @@ pub enum ControllerMessage {
     NewBlock(String),
     // NewTransaction(txid),
     NewTransaction(String),
-    CurrencySelectionChange(CurrencyChange),
+    CurrencySelectionChange,
     CurrencyModeChange(CurrencyMode),
 }
 
@@ -150,7 +147,7 @@ pub enum CurrencyMode {
     Reserve,
 }
 
-pub enum CurrencyChange {
-    Add(Box<dyn Currency>),
-    Remove(Box<dyn Currency>),
-}
+// pub enum CurrencyChange {
+//     Add(Box<dyn Currency>),
+//     Remove(Box<dyn Currency>),
+// }

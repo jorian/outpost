@@ -11,9 +11,9 @@ pub struct ReserveTable {
 impl View for ReserveTable {
     fn draw(&self, printer: &cursive::Printer) {
         // title draw:
-        let eofp = dbg!(((printer.output_size.x.saturating_sub(26)) / 2)
-            .saturating_sub(&self.reserve_name.len() / 2));
-        let bolp = dbg!(eofp + &self.reserve_name.len());
+        let eofp = ((printer.output_size.x.saturating_sub(26)) / 2)
+            .saturating_sub(&self.reserve_name.len() / 2);
+        let bolp = eofp + &self.reserve_name.len();
 
         for i in 0..(eofp.saturating_sub(1)) {
             printer.print((i, 0), "-");
