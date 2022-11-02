@@ -1,6 +1,9 @@
 use std::collections::HashMap;
 
-use vrsc_rpc::{json::vrsc::Address, Auth, Client, RpcApi};
+use vrsc_rpc::{
+    json::{vrsc::Address, ReserveCurrency},
+    Auth, Client, RpcApi,
+};
 
 #[derive(Debug)]
 pub struct Basket {
@@ -8,26 +11,6 @@ pub struct Basket {
     pub currencyid: Address,
     pub currency_state: vrsc_rpc::json::CurrencyState,
     pub currencynames: HashMap<Address, String>,
-}
-
-pub trait Currency: Send {
-    fn name(&self) -> String;
-}
-
-pub struct Reserve {
-    name: String,
-}
-
-impl Currency for Reserve {
-    fn name(&self) -> String {
-        self.name.clone()
-    }
-}
-
-impl Currency for Basket {
-    fn name(&self) -> String {
-        self.name.clone()
-    }
 }
 
 pub struct Verus {
@@ -105,6 +88,38 @@ impl Verus {
         }
 
         Ok(last_currency_states)
+    }
+
+    pub fn get_latest_currencies(&mut self) -> Result<Vec<ReserveCurrency>, ()> {
+        let currencies = self.client.list_currencies(None).unwrap();
+
+        let mut filtered_currencies: Vec<(String, Address)> = currencies
+            .0
+            .into_iter()
+            .filter(|currency| [40].contains(&currency.currencydefinition.options))
+            .map(|currency| {
+                (
+                    currency.currencydefinition.fullyqualifiedname,
+                    currency.currencydefinition.currencyid,
+                )
+            })
+            .collect();
+
+        let currencies = self.client.list_currencies(None).unwrap();
+
+        let mut filtered_currencies: Vec<(String, Address)> = currencies
+            .0
+            .into_iter()
+            .filter(|currency| [264].contains(&currency.currencydefinition.options))
+            .map(|currency| {
+                (
+                    currency.currencydefinition.fullyqualifiedname,
+                    currency.currencydefinition.currencyid,
+                )
+            })
+            .collect();
+
+        Ok(vec![])
     }
 
     fn currency_id_to_name(&mut self, currency_id: Address) -> String {

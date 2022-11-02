@@ -6,6 +6,7 @@ use cursive::{
     View,
 };
 use tracing::{debug, info};
+use vrsc_rpc::json::ReserveCurrency;
 
 use crate::{verus::Basket, views::reservetable::ReserveTable};
 
@@ -20,7 +21,7 @@ impl Reserves {
         }
     }
 
-    pub fn update(&mut self, baskets: Arc<Vec<Basket>>, checked_currencies: Vec<String>) {
+    pub fn update(&mut self, baskets: Arc<Vec<Basket>>, checked_currencies: Vec<ReserveCurrency>) {
         info!("{} baskets retrieved", baskets.len());
         // debug!("{:?}", baskets);
 
@@ -30,10 +31,7 @@ impl Reserves {
                 let mut ll = LinearLayout::vertical();
 
                 for basket in baskets.iter() {
-                    ll.add_child(ReserveTable::new(
-                        basket.name.clone(),
-                        basket.currency_state.reservecurrencies.clone(),
-                    ));
+                    ll.add_child(ReserveTable::new(basket));
                 }
 
                 ll

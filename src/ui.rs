@@ -65,14 +65,6 @@ impl UI {
                 Panel::new(
                     LinearLayout::vertical()
                         .child(DummyView {}.fixed_height(1))
-                        .child(
-                            FilterBox::new("Test 1".to_string(), c_tx.clone())
-                                .with_name("filterbox"),
-                        )
-                        .child(
-                            FilterBox::new("Test 2".to_string(), c_tx.clone())
-                                .with_name("filterbox"),
-                        )
                         .child(Selector::new().with_name("SELECTOR").full_height()),
                 )
                 .title("Selector")
@@ -108,8 +100,8 @@ impl UI {
 
                                 s.call_on_all_named("filterbox", |filterbox: &mut FilterBox| {
                                     if filterbox.checkbox.is_checked() {
-                                        debug!("{}", &filterbox.name);
-                                        checked_currencies.push(filterbox.name.clone());
+                                        debug!("{}", &filterbox.reserve_currency.currencyid);
+                                        checked_currencies.push(filterbox.reserve_currency.clone());
                                     }
                                 });
 

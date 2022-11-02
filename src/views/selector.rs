@@ -18,16 +18,18 @@ impl Selector {
         }
     }
 
-    pub fn update(&mut self, baskets: Arc<Vec<Basket>>) {
+    pub fn update(&mut self, reserve_currencies: Arc<Vec<Basket>>) {
         debug!("update selector overview");
         // let new_baskets = verus::get_latest_baskets();
 
         // if let Ok(_baskets) = new_baskets {
-        debug!("{:#?}", baskets);
+        // debug!("{:#?}", reserve_currencies);
 
-        self.view.clear();
-        self.view
-            .add_child(ScrollView::new(TextView::new(format!("{:#?}", baskets))));
+        // self.view.clear();
+        // self.view.add_child(ScrollView::new(TextView::new(format!(
+        //     "{:#?}",
+        //     reserve_currencies
+        // ))));
 
         // get filters from selector
         // show basket in overview

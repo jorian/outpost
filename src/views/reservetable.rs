@@ -1,6 +1,8 @@
 use cursive::{theme::Color, Vec2, View};
 use vrsc_rpc::json::ReserveCurrency;
 
+use crate::verus::Basket;
+
 pub struct ReserveTable {
     pub reserve_name: String,
     pub reserve_currencies: Vec<ReserveCurrency>,
@@ -76,9 +78,9 @@ impl View for ReserveTable {
 }
 
 impl ReserveTable {
-    pub fn new(name: String, reserve_currencies: Vec<ReserveCurrency>) -> Self {
+    pub fn new(basket: &Basket) -> Self {
         ReserveTable {
-            reserve_name: name,
+            reserve_name: basketname,
             reserve_currencies,
         }
     }
