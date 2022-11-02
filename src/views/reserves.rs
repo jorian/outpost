@@ -4,7 +4,7 @@ use cursive::{
     View,
 };
 use tracing::info;
-use vrsc_rpc::json::ReserveCurrency;
+use vrsc_rpc::json::Currency;
 
 use crate::{verus::Basket, views::reservetable::ReserveTable};
 
@@ -19,9 +19,8 @@ impl Reserves {
         }
     }
 
-    pub fn update(&mut self, baskets: Vec<Basket>, _checked_currencies: Vec<ReserveCurrency>) {
+    pub fn update(&mut self, baskets: Vec<Basket>, _checked_currencies: Vec<Currency>) {
         info!("{} baskets retrieved", baskets.len());
-        // debug!("{:?}", baskets);
 
         self.view.get_inner_mut().clear();
         self.view.get_inner_mut().add_child(

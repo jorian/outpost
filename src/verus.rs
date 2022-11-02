@@ -1,7 +1,7 @@
 use std::collections::HashMap;
 
 use vrsc_rpc::{
-    json::{vrsc::Address, ReserveCurrency},
+    json::{vrsc::Address, Currency, ReserveCurrency},
     Auth, Client, RpcApi,
 };
 
@@ -90,36 +90,28 @@ impl Verus {
         Ok(last_currency_states)
     }
 
-    pub fn get_latest_currencies(&mut self) -> Result<Vec<ReserveCurrency>, ()> {
+    // listcurrencies without any arguments returns only 1 264 for VRSCTEST, and listcurrencies(imported) returns all the other minable pbaas currencies.
+    // this works really well with our use case, because we can now show a list of currencies except the one we always support: VRSCTEST
+    pub fn get_latest_currencies(&mut self) -> Result<Vec<Currency>, ()> {
         let currencies = self.client.list_currencies(None).unwrap();
 
-        let _filtered_currencies: Vec<(String, Address)> = currencies
+        let mut filtered_currencies: Vec<Currency> = currencies
             .0
             .into_iter()
             .filter(|currency| [40].contains(&currency.currencydefinition.options))
-            .map(|currency| {
-                (
-                    currency.currencydefinition.fullyqualifiedname,
-                    currency.currencydefinition.currencyid,
-                )
-            })
             .collect();
 
-        let currencies = self.client.list_currencies(None).unwrap();
+        let currencies = self.client.list_currencies(Some("imported")).unwrap();
 
-        let _filtered_currencies: Vec<(String, Address)> = currencies
+        let mut pbaas_currencies = currencies
             .0
             .into_iter()
             .filter(|currency| [264].contains(&currency.currencydefinition.options))
-            .map(|currency| {
-                (
-                    currency.currencydefinition.fullyqualifiedname,
-                    currency.currencydefinition.currencyid,
-                )
-            })
             .collect();
 
-        Ok(vec![])
+        filtered_currencies.append(&mut pbaas_currencies);
+
+        Ok(filtered_currencies)
     }
 
     fn currency_id_to_name(&mut self, currency_id: Address) -> String {

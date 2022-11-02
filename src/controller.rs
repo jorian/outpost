@@ -1,7 +1,7 @@
 use std::sync::mpsc;
 
 use tracing::{error, info};
-use vrsc_rpc::json::ReserveCurrency;
+use vrsc_rpc::json::Currency;
 
 use crate::{
     ui::{UIMessage, UI},
@@ -13,7 +13,7 @@ pub struct Controller {
     pub c_rx: mpsc::Receiver<ControllerMessage>,
     pub ui: UI,
     pub baskets: Vec<Basket>,
-    pub currencies: Vec<ReserveCurrency>,
+    pub currencies: Vec<Currency>,
     pub verus: Verus,
 }
 
@@ -89,6 +89,14 @@ impl Controller {
     pub fn update_selection_screen(&mut self) {
         if let Ok(currencies) = self.verus.get_latest_currencies() {
             self.currencies = currencies;
+
+            if let Err(e) = self
+                .ui
+                .ui_tx
+                .send(UIMessage::UpdateSelectorCurrencies(self.currencies.clone()))
+            {
+                error!("UIMessage send error: {:?}", e);
+            }
         }
     }
 
