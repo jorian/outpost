@@ -5,7 +5,7 @@ use vrsc_rpc::{
     Auth, Client, RpcApi,
 };
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct Basket {
     pub name: String,
     pub currencyid: Address,
@@ -93,7 +93,7 @@ impl Verus {
     pub fn get_latest_currencies(&mut self) -> Result<Vec<ReserveCurrency>, ()> {
         let currencies = self.client.list_currencies(None).unwrap();
 
-        let mut filtered_currencies: Vec<(String, Address)> = currencies
+        let _filtered_currencies: Vec<(String, Address)> = currencies
             .0
             .into_iter()
             .filter(|currency| [40].contains(&currency.currencydefinition.options))
@@ -107,7 +107,7 @@ impl Verus {
 
         let currencies = self.client.list_currencies(None).unwrap();
 
-        let mut filtered_currencies: Vec<(String, Address)> = currencies
+        let _filtered_currencies: Vec<(String, Address)> = currencies
             .0
             .into_iter()
             .filter(|currency| [264].contains(&currency.currencydefinition.options))

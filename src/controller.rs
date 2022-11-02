@@ -14,8 +14,8 @@ pub struct Controller {
     _data: Arc<SessionData>,
     pub c_rx: mpsc::Receiver<ControllerMessage>,
     pub ui: UI,
-    pub baskets: Arc<Vec<Basket>>,
-    pub currencies: Arc<Vec<ReserveCurrency>>,
+    pub baskets: Vec<Basket>,
+    pub currencies: Vec<ReserveCurrency>,
     pub verus: Verus,
 }
 
@@ -28,8 +28,8 @@ impl Controller {
             _data,
             c_rx,
             ui: UI::new(c_tx.clone()),
-            baskets: Arc::new(vec![]),
-            currencies: Arc::new(vec![]),
+            baskets: vec![],
+            currencies: vec![],
             verus: Verus::new(),
         }
     }
@@ -111,18 +111,18 @@ impl Controller {
     pub fn update_selection_screen(&mut self) {
         // get all reserve_currencies.
         if let Ok(currencies) = self.verus.get_latest_currencies() {
-            self.currencies = Arc::new(currencies);
+            self.currencies = currencies;
         }
     }
 
     pub fn update_baskets(&mut self) {
         if let Ok(baskets) = self.verus.get_latest_baskets() {
-            self.baskets = Arc::new(baskets);
+            self.baskets = baskets;
 
             if let Err(e) = self
                 .ui
                 .ui_tx
-                .send(UIMessage::UpdateReserveOverview(Arc::clone(&self.baskets)))
+                .send(UIMessage::UpdateReserveOverview(self.baskets.clone()))
             {
                 error!("UIMessage send error: {:?}", e);
             }

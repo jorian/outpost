@@ -1,11 +1,9 @@
 use cursive::{theme::Color, Vec2, View};
-use vrsc_rpc::json::ReserveCurrency;
 
 use crate::verus::Basket;
 
 pub struct ReserveTable {
-    pub reserve_name: String,
-    pub reserve_currencies: Vec<ReserveCurrency>,
+    pub basket: Basket,
 }
 
 // ----------------------- VRSC-GBP ----------------------- Price ----------- Weight
@@ -14,8 +12,8 @@ impl View for ReserveTable {
     fn draw(&self, printer: &cursive::Printer) {
         // title draw:
         let eofp = ((printer.output_size.x.saturating_sub(26)) / 2)
-            .saturating_sub(&self.reserve_name.len() / 2);
-        let bolp = eofp + &self.reserve_name.len();
+            .saturating_sub(&self.basket.name.len() / 2);
+        let bolp = eofp + &self.basket.name.len();
 
         for i in 0..(eofp.saturating_sub(1)) {
             printer.print((i, 0), "-");
@@ -24,7 +22,7 @@ impl View for ReserveTable {
         printer.with_color(Color::from_256colors(32).into(), |printer| {
             printer.print(
                 (eofp.saturating_sub(1), 0),
-                &format!(" {} ", &self.reserve_name),
+                &format!(" {} ", &self.basket.name),
             );
         });
 
@@ -45,13 +43,27 @@ impl View for ReserveTable {
         });
 
         let vrsc = self
-            .reserve_currencies
+            .basket
+            .currency_state
+            .reservecurrencies
             .iter()
             .find(|b| &b.currencyid.to_string() == "iJhCezBExJHvtyH3fGhNnt2NhU4Ztkf2yq")
             .unwrap();
 
-        for (i, rc) in self.reserve_currencies.iter().enumerate() {
-            printer.print((0, i + 1), &rc.currencyid.to_string());
+        for (i, rc) in self
+            .basket
+            .currency_state
+            .reservecurrencies
+            .iter()
+            .enumerate()
+        {
+            printer.print(
+                (0, i + 1),
+                self.basket
+                    .currencynames
+                    .get(&rc.currencyid)
+                    .unwrap_or(&rc.currencyid.to_string()),
+            );
             printer.print(
                 // 32 should be calcualted
                 (printer.output_size.x.saturating_sub(32), i + 1),
@@ -69,7 +81,7 @@ impl View for ReserveTable {
     // that means that the initiation of this table should accept a list of currencies.
     fn required_size(&mut self, _constraint: cursive::Vec2) -> cursive::Vec2 {
         // account for filter?
-        Vec2::new(3, self.reserve_currencies.len() + 2) // 1 for title, 1 for blank space below
+        Vec2::new(3, self.basket.currency_state.reservecurrencies.len() + 2) // 1 for title, 1 for blank space below
     }
 
     fn needs_relayout(&self) -> bool {
@@ -78,10 +90,7 @@ impl View for ReserveTable {
 }
 
 impl ReserveTable {
-    pub fn new(basket: &Basket) -> Self {
-        ReserveTable {
-            reserve_name: basketname,
-            reserve_currencies,
-        }
+    pub fn new(basket: Basket) -> Self {
+        ReserveTable { basket }
     }
 }

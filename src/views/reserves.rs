@@ -1,11 +1,9 @@
-use std::sync::Arc;
-
 use cursive::{
     view::{Resizable, ViewWrapper},
     views::*,
     View,
 };
-use tracing::{debug, info};
+use tracing::info;
 use vrsc_rpc::json::ReserveCurrency;
 
 use crate::{verus::Basket, views::reservetable::ReserveTable};
@@ -21,7 +19,7 @@ impl Reserves {
         }
     }
 
-    pub fn update(&mut self, baskets: Arc<Vec<Basket>>, checked_currencies: Vec<ReserveCurrency>) {
+    pub fn update(&mut self, baskets: Vec<Basket>, _checked_currencies: Vec<ReserveCurrency>) {
         info!("{} baskets retrieved", baskets.len());
         // debug!("{:?}", baskets);
 
@@ -30,7 +28,7 @@ impl Reserves {
             ScrollView::new({
                 let mut ll = LinearLayout::vertical();
 
-                for basket in baskets.iter() {
+                for basket in baskets.into_iter() {
                     ll.add_child(ReserveTable::new(basket));
                 }
 

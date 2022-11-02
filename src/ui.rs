@@ -1,8 +1,8 @@
-use std::sync::{mpsc, Arc};
+use std::sync::mpsc;
 
 use cursive::{
     view::{Nameable, Resizable},
-    views::{DummyView, LinearLayout, Panel, ResizedView, SelectView},
+    views::{DummyView, LinearLayout, Panel, ResizedView},
     CursiveRunnable, CursiveRunner,
 };
 use tracing::debug;
@@ -11,11 +11,7 @@ use vrsc_rpc::json::ReserveCurrency;
 use crate::{
     controller::ControllerMessage,
     verus::Basket,
-    views::{
-        filterbox::{self, FilterBox},
-        reserves::Reserves,
-        selector::{Selector, SelectorMode},
-    },
+    views::{filterbox::FilterBox, reserves::Reserves, selector::Selector},
 };
 
 pub type UIReceiver = mpsc::Receiver<UIMessage>;
@@ -55,7 +51,7 @@ pub struct UI {
 // |--------------------------------------------------------------------------------------------------|
 
 impl UI {
-    pub fn new(c_tx: mpsc::Sender<ControllerMessage>) -> Self {
+    pub fn new(_c_tx: mpsc::Sender<ControllerMessage>) -> Self {
         let (ui_tx, ui_rx) = mpsc::channel::<UIMessage>();
         let mut siv = cursive::ncurses().into_runner();
         siv.update_theme(|theme| theme.shadow = false);
@@ -122,10 +118,10 @@ impl UI {
                     // clicking on the name of the basket should open up a layer with all the information of the basket and all its currencies
                     // the selection should just be a filter of the baskets
                 }
-                UIMessage::UpdateSelectorCurrencies(vec) => {
+                UIMessage::UpdateSelectorCurrencies(_vec) => {
                     let cb_sink = self.siv.cb_sink().clone();
 
-                    std::thread::spawn(move || cb_sink.send(Box::new(move |s| {})));
+                    std::thread::spawn(move || cb_sink.send(Box::new(move |_s| {})));
                 }
             }
         }
@@ -137,6 +133,6 @@ impl UI {
 }
 
 pub enum UIMessage {
-    UpdateReserveOverview(Arc<Vec<Basket>>),
+    UpdateReserveOverview(Vec<Basket>),
     UpdateSelectorCurrencies(Vec<ReserveCurrency>),
 }

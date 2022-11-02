@@ -1,5 +1,3 @@
-use std::sync::Arc;
-
 use cursive::{view::ViewWrapper, views::*, View};
 use tracing::debug;
 
@@ -18,7 +16,7 @@ impl Selector {
         }
     }
 
-    pub fn update(&mut self, reserve_currencies: Arc<Vec<Basket>>) {
+    pub fn update(&mut self, _reserve_currencies: Vec<Basket>) {
         debug!("update selector overview");
         // let new_baskets = verus::get_latest_baskets();
 
