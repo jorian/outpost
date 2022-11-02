@@ -14,6 +14,6 @@ You have the choice to watch all reserve currencies and their reserves, based on
 
 # DEV
 
-Have 
+Updates to the overview are triggered by new blocks using zmq. Put `zmqpubhashblock=tcp://127.0.0.1:27780` in your VRSCTEST.conf.
 Run with `RUST_LOG=info LC_ALL=en_US.UTF-8 cargo run --color always >> output.log 2>&1`
 
