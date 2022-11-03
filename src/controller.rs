@@ -12,7 +12,6 @@ use crate::{
 pub struct Controller {
     pub c_rx: mpsc::Receiver<ControllerMessage>,
     pub ui: UI,
-    pub baskets: Vec<Basket>,
     pub currencies: Vec<Currency>,
     pub verus: Verus,
 }
@@ -25,7 +24,6 @@ impl Controller {
         Controller {
             c_rx,
             ui: UI::new(c_tx.clone()),
-            baskets: vec![],
             currencies: vec![],
             verus: Verus::new(),
         }
@@ -102,12 +100,10 @@ impl Controller {
 
     pub fn update_baskets(&mut self) {
         if let Ok(baskets) = self.verus.get_latest_baskets() {
-            self.baskets = baskets;
-
             if let Err(e) = self
                 .ui
                 .ui_tx
-                .send(UIMessage::UpdateReserveOverview(self.baskets.clone()))
+                .send(UIMessage::UpdateReserveOverview(baskets))
             {
                 error!("UIMessage send error: {:?}", e);
             }
