@@ -6,7 +6,7 @@ use vrsc_rpc::json::Currency;
 use crate::{
     ui::{UIMessage, UI},
     util::zmq::*,
-    verus::{Basket, Verus},
+    verus::Verus,
 };
 
 pub struct Controller {
@@ -42,7 +42,9 @@ impl Controller {
                     ControllerMessage::CurrencySelectionChange => {
                         info!("Filter changed");
 
-                        self.update_baskets();
+                        if let Err(e) = self.ui.ui_tx.send(UIMessage::ApplyFilter) {
+                            error!("{:?}", e)
+                        }
                     }
                     ControllerMessage::NewBlock(blockhash) => {
                         info!("new block arrived: {}", blockhash);
@@ -105,7 +107,7 @@ impl Controller {
                 .ui_tx
                 .send(UIMessage::UpdateReserveOverview(baskets))
             {
-                error!("UIMessage send error: {:?}", e);
+                error!("{:?}", e)
             }
         }
     }

@@ -96,19 +96,8 @@ impl UI {
                     std::thread::spawn(move || {
                         cb_sink
                             .send(Box::new(move |s| {
-                                let mut checked_currencies = vec![];
-
-                                s.call_on_all_named("filterbox", |filterbox: &mut FilterBox| {
-                                    if filterbox.checkbox.is_checked() {
-                                        debug!("{}", &filterbox.currency.currencydefinition.name);
-                                        checked_currencies.push(filterbox.currency.clone());
-                                    }
-                                });
-
-                                debug!("{:?}", &checked_currencies);
-
                                 s.call_on_name("RESERVES", |reserves_view: &mut Reserves| {
-                                    reserves_view.update(baskets, checked_currencies);
+                                    reserves_view.update_baskets(baskets);
                                 });
                             }))
                             .unwrap();
@@ -119,6 +108,29 @@ impl UI {
                         .call_on_name("SELECTOR", |selector_view: &mut Selector| {
                             selector_view.update(vec);
                         });
+                }
+                UIMessage::ApplyFilter => {
+                    let mut checked_currencies = vec![];
+
+                    let cb_sink = self.siv.cb_sink().clone();
+                    std::thread::spawn(move || {
+                        cb_sink.send(Box::new(move |s| {
+                            s.call_on_all_named("filterbox", |filterbox: &mut FilterBox| {
+                                if filterbox.checkbox.is_checked() {
+                                    debug!("{}", &filterbox.currency.currencydefinition.name);
+                                    checked_currencies.push(filterbox.currency.clone());
+                                }
+                            });
+
+                            debug!("{:?}", &checked_currencies);
+
+                            s.call_on_name("RESERVES", |reserves_view: &mut Reserves| {
+                                reserves_view.update_view(checked_currencies);
+                            });
+                        }))
+                    });
+
+                    // update the reserve with the basket it already has, so that it doesn't query every time the filter changes
                 }
             }
         }
@@ -132,4 +144,5 @@ impl UI {
 pub enum UIMessage {
     UpdateReserveOverview(Vec<Basket>),
     UpdateSelectorCurrencies(Vec<Currency>),
+    ApplyFilter,
 }
