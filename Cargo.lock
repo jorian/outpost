@@ -786,6 +786,7 @@ dependencies = [
  "cursive-aligned-view",
  "cursive_table_view",
  "serde",
+ "serde_json",
  "tracing",
  "tracing-subscriber",
  "vrsc-rpc",

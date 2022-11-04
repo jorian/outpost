@@ -59,13 +59,11 @@ impl UI {
         let main_view = LinearLayout::horizontal()
             .child(
                 Panel::new(
-                    LinearLayout::vertical()
-                        // .child(DummyView {}.fixed_height(1))
-                        .child(
-                            Selector::new(c_tx.clone())
-                                .with_name("SELECTOR")
-                                .full_height(),
-                        ),
+                    LinearLayout::vertical().child(
+                        Selector::new(c_tx.clone())
+                            .with_name("SELECTOR")
+                            .full_height(),
+                    ),
                 )
                 .title("Selector")
                 .fixed_width(30),
@@ -134,6 +132,9 @@ impl UI {
                         }))
                     });
                 }
+                UIMessage::NewLog(message) => {
+                    debug!("let's put a message in the log for {}", message);
+                }
             }
         }
 
@@ -147,4 +148,5 @@ pub enum UIMessage {
     UpdateReserveOverview(Vec<Basket>),
     UpdateSelectorCurrencies(Vec<Currency>),
     ApplyFilter,
+    NewLog(String),
 }
