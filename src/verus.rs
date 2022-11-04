@@ -14,14 +14,19 @@ pub struct Basket {
 }
 
 pub struct Verus {
-    client: Client,
+    pub client: Client,
     id_names: HashMap<Address, String>,
 }
 
 impl Verus {
-    pub fn new() -> Self {
+    pub fn new(testnet: bool) -> Self {
+        let client = match testnet {
+            true => Client::chain("vrsctest", Auth::ConfigFile, None).unwrap(),
+            false => Client::chain("VRSC", Auth::ConfigFile, None).unwrap(),
+        };
+
         Verus {
-            client: Client::chain("vrsctest", Auth::ConfigFile, None).unwrap(),
+            client,
             id_names: HashMap::new(),
         }
     }
@@ -136,7 +141,7 @@ mod tests {
     fn it_works() {
         use super::*;
 
-        let mut verus = Verus::new();
+        let mut verus = Verus::new(true);
         verus.get_latest_baskets().unwrap();
     }
 }

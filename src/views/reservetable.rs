@@ -45,7 +45,10 @@ impl View for ReserveTable {
             .currency_state
             .reservecurrencies
             .iter()
-            .find(|b| &b.currencyid.to_string() == "iJhCezBExJHvtyH3fGhNnt2NhU4Ztkf2yq")
+            .find(|b| {
+                // TODO add VRSC currency
+                ["iJhCezBExJHvtyH3fGhNnt2NhU4Ztkf2yq"].contains(&b.currencyid.to_string().as_str())
+            })
             .unwrap();
 
         for (i, rc) in self

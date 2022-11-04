@@ -1,6 +1,10 @@
-use std::sync::mpsc;
+use std::{str::FromStr, sync::mpsc};
 
-use tracing::{error, info};
+use tracing::{debug, error, info};
+use vrsc_rpc::{
+    bitcoin::{hashes::sha256d::Hash, Txid},
+    RpcApi,
+};
 
 use crate::{
     ui::{UIMessage, UI},
@@ -15,14 +19,15 @@ pub struct Controller {
 }
 
 impl Controller {
-    pub fn new() -> Self {
+    pub fn new(testnet: bool) -> Self {
         let (c_tx, c_rx) = mpsc::channel::<ControllerMessage>();
         zmq_block_notify(c_tx.clone());
+        zmq_tx_notify(c_tx.clone());
 
         Controller {
             c_rx,
             ui: UI::new(c_tx.clone()),
-            verus: Verus::new(),
+            verus: Verus::new(testnet),
         }
     }
 
@@ -49,7 +54,16 @@ impl Controller {
                         self.update_baskets();
                     }
                     ControllerMessage::NewTransaction(txid) => {
+                        // 1d878bf932c406647374cafa9019ee5b00c581309e01f772d6e147f34b6bc601 = reservetransfer > spenttxid
+                        // 0b80f3f5b0932f47c6d75f67085979cf5067b60077f3196f080fa788f078804d
+                        // 6c070618db343c1ba288f7da713729540058c4e54ea63b5ac0c5757fc5166d76
+
                         info!("new tx arrived: {}", txid);
+
+                        let hash = Hash::from_str(&txid).unwrap();
+                        let txid = Txid::from_hash(hash);
+                        let raw_tx = self.verus.client.get_raw_transaction_verbose(&txid);
+                        debug!("{:#?}", &raw_tx);
                     }
                 }
             }

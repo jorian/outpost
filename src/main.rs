@@ -1,16 +1,20 @@
+pub mod configuration;
 pub mod controller;
 pub mod ui;
 pub mod util;
 pub mod verus;
 pub mod views;
 
+use configuration::get_configuration;
 use controller::Controller;
 use tracing_subscriber::EnvFilter;
 
 fn main() {
+    let config = get_configuration().expect("failed to read configuration");
+
     logging_setup();
 
-    let mut controller = Controller::new();
+    let mut controller = Controller::new(config.testnet);
 
     controller.start();
 }

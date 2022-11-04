@@ -11,6 +11,7 @@ You have the choice to watch all reserve currencies and their reserves, based on
 - add support for mempool scanning
 - change PBaaS chains
 - select specific currency baskets by their name
+- 24h change %
 
 # DEV
 
