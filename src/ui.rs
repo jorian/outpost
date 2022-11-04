@@ -98,6 +98,8 @@ impl UI {
                             .send(Box::new(move |s| {
                                 s.call_on_name("RESERVES", |reserves_view: &mut Reserves| {
                                     reserves_view.update_baskets(baskets);
+
+                                    reserves_view.update_view();
                                 });
                             }))
                             .unwrap();
@@ -125,12 +127,12 @@ impl UI {
                             debug!("{:?}", &checked_currencies);
 
                             s.call_on_name("RESERVES", |reserves_view: &mut Reserves| {
-                                reserves_view.update_view(checked_currencies);
+                                reserves_view.update_checked_currencies(checked_currencies);
+
+                                reserves_view.update_view();
                             });
                         }))
                     });
-
-                    // update the reserve with the basket it already has, so that it doesn't query every time the filter changes
                 }
             }
         }

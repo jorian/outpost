@@ -11,6 +11,7 @@ use crate::{verus::Basket, views::reservetable::ReserveTable};
 pub struct Reserves {
     view: ResizedView<LinearLayout>,
     baskets: Vec<Basket>,
+    checked_currencies: Vec<Currency>,
 }
 
 impl Reserves {
@@ -18,6 +19,7 @@ impl Reserves {
         Reserves {
             view: LinearLayout::horizontal().min_width(200),
             baskets: vec![],
+            checked_currencies: vec![],
         }
     }
 
@@ -26,7 +28,11 @@ impl Reserves {
         self.baskets = baskets;
     }
 
-    pub fn update_view(&mut self, checked_currencies: Vec<Currency>) {
+    pub fn update_checked_currencies(&mut self, checked_currencies: Vec<Currency>) {
+        self.checked_currencies = checked_currencies;
+    }
+
+    pub fn update_view(&mut self) {
         self.view.get_inner_mut().clear();
         self.view.get_inner_mut().add_child(
             ScrollView::new({
@@ -34,7 +40,7 @@ impl Reserves {
 
                 for mut basket in self.baskets.clone().into_iter() {
                     basket.currency_state.reservecurrencies.retain(|rc| {
-                        checked_currencies
+                        self.checked_currencies
                             .iter()
                             .any(|cur| cur.currencydefinition.currencyid == rc.currencyid)
                             || rc.currencyid.to_string()
