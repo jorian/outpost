@@ -27,7 +27,7 @@ fn logging_setup() {
     let _ = color_eyre::install();
 
     if std::env::var("RUST_LOG").is_err() {
-        std::env::set_var("RUST_LOG", "cursive=info,outpost=debug")
+        std::env::set_var("RUST_LOG", "cursive=info,outpost=debug,vrsc-rpc=debug")
     }
 
     tracing_subscriber::fmt::fmt()

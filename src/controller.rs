@@ -1,6 +1,6 @@
 use std::{str::FromStr, sync::mpsc};
 
-use serde_json::Value;
+use chrono::Local;
 use tracing::{debug, error, info};
 use vrsc_rpc::{
     bitcoin::{hashes::sha256d::Hash, Txid},
@@ -11,10 +11,12 @@ use crate::{
     ui::{UIMessage, UI},
     util::zmq::*,
     verus::Verus,
+    views::log::LogMessage,
 };
 
 pub struct Controller {
     pub c_rx: mpsc::Receiver<ControllerMessage>,
+    pub l_tx: mpsc::Sender<LogMessage>,
     pub ui: UI,
     pub verus: Verus,
 }
@@ -22,12 +24,14 @@ pub struct Controller {
 impl Controller {
     pub fn new(testnet: bool) -> Self {
         let (c_tx, c_rx) = mpsc::channel::<ControllerMessage>();
+        let (l_tx, l_rx) = mpsc::channel::<LogMessage>();
         zmq_block_notify(c_tx.clone());
         zmq_tx_notify(c_tx.clone());
 
         Controller {
             c_rx,
-            ui: UI::new(c_tx.clone()),
+            l_tx,
+            ui: UI::new(c_tx.clone(), l_rx),
             verus: Verus::new(testnet),
         }
     }
@@ -64,34 +68,94 @@ impl Controller {
                         // 1b04030001011504af02625e74df9de1cf78921e0690ab94b2d6c603cc3604030901011504af02625e74df9de1cf78921e0690ab94b2d6c6031a0176f89c6dc26d4d775b3dceef7ad4f1d3efd35a0380e9aacb0d75
                         // 1b04030001011504af02625e74df9de1cf78921e0690ab94b2d6c603cc3604030901011504af02625e74df9de1cf78921e0690ab94b2d6c6031a0176f89c6dc26d4d775b3dceef7ad4f1d3efd35a0380e9c8bf0775
 
-                        info!("new tx arrived: {}", txid);
-
                         let hash = Hash::from_str(&txid).unwrap();
                         let txid = Txid::from_hash(hash);
-                        if let Ok(raw_tx) = self.verus.client.get_raw_transaction_verbose(&txid) {
-                            if raw_tx.confirmations.is_some() {
-                                for vout in raw_tx.vout {
-                                    let value = serde_json::to_value(vout.script_pubkey).unwrap();
-                                    debug!("{:#?}", value);
-                                    if let Some(object) = value["reservetransfer"].as_object() {
-                                        info!("a transfer was initiated: {}", raw_tx.txid);
-                                        info!("{:#?}", object);
+                        match self.verus.client.get_raw_transaction_verbose(&txid) {
+                            Ok(raw_tx) => {
+                                if raw_tx.confirmations.is_none() {
+                                    for vout in &raw_tx.vout {
+                                        if let Some(reserve_transfer) =
+                                            &vout.script_pubkey.reservetransfer
+                                        {
+                                            info!("a transfer was initiated: {}", raw_tx.txid);
+                                            info!("{:#?}", reserve_transfer);
 
-                                        self.ui.ui_tx.send(UIMessage::NewLog(String::from(
-                                            "reservetransfer",
-                                        )));
-                                    }
+                                            let currencyname = self.verus.currency_id_to_name(
+                                                reserve_transfer.destinationcurrencyid.clone(),
+                                            );
 
-                                    if let Some(object) = value["crosschainimport"].as_object() {
-                                        info!("a transfer was settled: {}", raw_tx.txid);
-                                        info!("crosschainimport {:#?}", object);
+                                            let amount_in_currency =
+                                                self.verus.currency_id_to_name(
+                                                    reserve_transfer
+                                                        .currencyvalues
+                                                        .keys()
+                                                        .last()
+                                                        .unwrap()
+                                                        .to_owned(),
+                                                );
+
+                                            self.l_tx
+                                                .send(LogMessage {
+                                                    time: format!(
+                                                        "{}",
+                                                        Local::now().format("%H:%M:%S")
+                                                    ),
+                                                    _type: crate::views::log::MessageType::Initiate,
+                                                    reserve: currencyname,
+                                                    amount_currency: amount_in_currency,
+                                                    amount_in: vout.value,
+                                                    amount_out: None,
+                                                })
+                                                .unwrap();
+                                        }
                                     }
-                                    if let Some(object) = value["reserveoutput"].as_object() {
-                                        info!("reserveoutput {:#?}", object);
+                                }
+                                if raw_tx.confirmations.is_some() {
+                                    for vout in &raw_tx.vout {
+                                        // let value =
+                                        //     serde_json::to_value(&vout.script_pubkey).unwrap();
+
+                                        if let Some(crosschain_import) =
+                                            &vout.script_pubkey.crosschainimport
+                                        {
+                                            info!("a transfer was settled: {}", raw_tx.txid);
+                                            info!("crosschainimport {:#?}", crosschain_import);
+
+                                            // let currencyname = self.verus.currency_id_to_name(
+                                            //     crosschain_import.importcurrencyid.clone(),
+                                            // );
+
+                                            // self.l_tx
+                                            //     .send(LogMessage {
+                                            //         time: format!(
+                                            //             "{}",
+                                            //             Local::now().format("%H:%M:%S")
+                                            //         ),
+                                            //         _type: crate::views::log::MessageType::Initiate,
+                                            //         reserve: currencyname,
+                                            //         amount_in: crosschain_import
+                                            //             .valuein
+                                            //             .as_f64()
+                                            //             .unwrap(), //.as_vrsc(),
+                                            //         amount_out: None,
+                                            //     })
+                                            //     .unwrap();
+                                        }
+                                        // if let Some(object) = value["reserveoutput"].as_object() {
+                                        //     info!("reserveoutput {:#?}", object);
+                                        // }
                                     }
                                 }
                             }
+                            Err(e) => error!("{:?}", e),
                         }
+
+                        let cb_sink = self.ui.siv.cb_sink().clone();
+                        cb_sink
+                            .send(Box::new(move |siv| {
+                                siv.noop();
+                            }))
+                            .unwrap();
                     }
                 }
             }

@@ -2,7 +2,7 @@ use std::sync::mpsc;
 
 use cursive::{
     view::{Nameable, Resizable},
-    views::{LinearLayout, Panel, ResizedView},
+    views::{LinearLayout, Panel},
     CursiveRunnable, CursiveRunner,
 };
 use tracing::debug;
@@ -11,7 +11,12 @@ use vrsc_rpc::json::Currency;
 use crate::{
     controller::ControllerMessage,
     verus::Basket,
-    views::{filterbox::FilterBox, reserves::Reserves, selector::Selector},
+    views::{
+        filterbox::FilterBox,
+        log::{LogMessage, LogView},
+        reserves::Reserves,
+        selector::Selector,
+    },
 };
 
 pub type UIReceiver = mpsc::Receiver<UIMessage>;
@@ -51,7 +56,7 @@ pub struct UI {
 // |--------------------------------------------------------------------------------------------------|
 
 impl UI {
-    pub fn new(c_tx: mpsc::Sender<ControllerMessage>) -> Self {
+    pub fn new(c_tx: mpsc::Sender<ControllerMessage>, l_rx: mpsc::Receiver<LogMessage>) -> Self {
         let (ui_tx, ui_rx) = mpsc::channel::<UIMessage>();
         let mut siv = cursive::ncurses().into_runner();
         siv.update_theme(|theme| theme.shadow = false);
@@ -69,11 +74,11 @@ impl UI {
                 .fixed_width(30),
             )
             .child(
-                Panel::new(ResizedView::with_full_screen(
-                    Reserves::new().with_name("RESERVES"),
-                ))
-                .title("Reserves"),
-            );
+                Panel::new(Reserves::new().with_name("RESERVES"))
+                    .title("Reserves")
+                    .full_width(),
+            )
+            .child(Panel::new(LogView::new(l_rx)).title("Log").min_width(75));
 
         siv.add_fullscreen_layer(main_view);
 

@@ -1,15 +1,11 @@
-use cursive::{
-    view::{Resizable, ViewWrapper},
-    views::*,
-    View,
-};
+use cursive::{view::ViewWrapper, views::*, View};
 use tracing::info;
 use vrsc_rpc::json::Currency;
 
 use crate::{verus::Basket, views::reservetable::ReserveTable};
 
 pub struct Reserves {
-    view: ResizedView<LinearLayout>,
+    view: LinearLayout,
     baskets: Vec<Basket>,
     checked_currencies: Vec<Currency>,
 }
@@ -17,7 +13,7 @@ pub struct Reserves {
 impl Reserves {
     pub fn new() -> impl View {
         Reserves {
-            view: LinearLayout::horizontal().min_width(200),
+            view: LinearLayout::horizontal(),
             baskets: vec![],
             checked_currencies: vec![],
         }
@@ -33,8 +29,8 @@ impl Reserves {
     }
 
     pub fn update_view(&mut self) {
-        self.view.get_inner_mut().clear();
-        self.view.get_inner_mut().add_child(
+        self.view.clear();
+        self.view.add_child(
             ScrollView::new({
                 let mut ll = LinearLayout::vertical();
 
@@ -52,12 +48,11 @@ impl Reserves {
                 }
 
                 ll
-            })
-            .full_width(),
+            }), // .full_width(),
         );
     }
 }
 
 impl ViewWrapper for Reserves {
-    cursive::wrap_impl!(self.view: ResizedView<LinearLayout>);
+    cursive::wrap_impl!(self.view: LinearLayout);
 }

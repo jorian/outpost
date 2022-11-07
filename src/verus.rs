@@ -119,7 +119,7 @@ impl Verus {
         Ok(filtered_currencies)
     }
 
-    fn currency_id_to_name(&mut self, currency_id: Address) -> String {
+    pub fn currency_id_to_name(&mut self, currency_id: Address) -> String {
         match self.id_names.get(&currency_id) {
             Some(value) => return value.to_owned(),
             None => {
