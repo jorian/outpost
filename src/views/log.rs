@@ -28,42 +28,69 @@ impl LogView {
 }
 
 impl View for LogView {
-    // fn required_size(&mut self, constraint: Vec2) -> Vec2 {}
-
     fn layout(&mut self, _: Vec2) {
-        // Before drawing, we'll want to update the buffer
         self.update();
     }
 
-    // this simply prints the buffer every new draw, no append or something
     fn draw(&self, printer: &Printer) {
-        // Print the end of the buffer
-        for (i, message) in self.buffer.iter().rev().take(printer.size.y).enumerate() {
-            match message._type {
-                MessageType::Initiate => {
-                    printer.print(
-                        (0, printer.size.y - 1 - i),
-                        &format!(
-                            "{} transfer initiated: {} | amount in: {} {}",
-                            message.time,
-                            message.reserve.as_str().trim_matches('"'),
-                            message.amount_in.as_vrsc(),
-                            message.amount_currency
-                        ),
-                    );
-                }
-                MessageType::Settle => {
-                    printer.print(
-                        (0, printer.size.y - 1 - i),
-                        &format!(
-                            "{} transfer settled: {} | amount in: {}",
-                            message.time,
-                            message.reserve.as_str().trim_matches('"'),
-                            message.amount_in
-                        ),
-                    );
-                }
+        let mut counter = 0;
+        for message in self.buffer.iter().rev() {
+            counter += message.height();
+
+            let mut linenum = 1;
+            if let Some(amount_out) = message.amount_out {
+                printer.print(
+                    (0, printer.size.y - 1 - linenum - counter + message.height()),
+                    &format!("{}", amount_out),
+                );
+                linenum += 1;
             }
+
+            printer.print(
+                (0, printer.size.y - 1 - linenum - counter + message.height()),
+                &format!("{}", message.amount_in),
+            );
+            linenum += 1;
+
+            printer.print(
+                (0, printer.size.y - 1 - linenum - counter + message.height()),
+                &format!(
+                    "{} transfer initiated for {} ",
+                    message.time, message.reserve
+                ),
+            );
+
+            linenum += 1;
+            printer.print(
+                (0, printer.size.y - 1 - linenum - counter + message.height()),
+                "-------------------",
+            )
+
+            // match message._type {
+            //     MessageType::Initiate => {
+            //         printer.print(
+            //             (0, printer.size.y - 1 - i),
+            //             &format!(
+            //                 "{} transfer initiated: {} | amount in: {} {}",
+            //                 message.time,
+            //                 message.reserve.as_str().trim_matches('"'),
+            //                 message.amount_in.as_vrsc(),
+            //                 message.amount_currency
+            //             ),
+            //         );
+            //     }
+            //     MessageType::Settle => {
+            //         printer.print(
+            //             (0, printer.size.y - 1 - i),
+            //             &format!(
+            //                 "{} transfer settled: {} | amount in: {}",
+            //                 message.time,
+            //                 message.reserve.as_str().trim_matches('"'),
+            //                 message.amount_in
+            //             ),
+            //         );
+            //     }
+            // }
         }
     }
 }
@@ -76,6 +103,16 @@ pub struct LogMessage {
     pub amount_currency: String,
     pub amount_in: Amount,
     pub amount_out: Option<f64>,
+}
+
+impl LogMessage {
+    pub fn height(&self) -> usize {
+        if self.amount_out.is_some() {
+            5
+        } else {
+            4
+        }
+    }
 }
 
 #[derive(Clone)]
