@@ -27,7 +27,7 @@ impl ViewWrapper for FilterBox {
 
     fn wrap_draw(&self, printer: &cursive::Printer) {
         self.checkbox.draw(printer);
-        printer.print((4, 0), &self.currency.currencydefinition.name);
+        printer.print((4, 0), &self.currency.currencydefinition.fullyqualifiedname);
     }
 
     fn wrap_required_size(&mut self, _req: cursive::Vec2) -> cursive::Vec2 {

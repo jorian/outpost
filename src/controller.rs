@@ -173,11 +173,16 @@ impl Controller {
 
     pub fn update_selection_screen(&mut self) {
         if let Ok(currencies) = self.verus.get_latest_currencies() {
+            debug!("{:#?}", &currencies);
             if let Err(e) = self
                 .ui
                 .ui_tx
                 .send(UIMessage::UpdateSelectorCurrencies(currencies))
             {
+                error!("UIMessage send error: {:?}", e);
+            }
+
+            if let Err(e) = self.ui.ui_tx.send(UIMessage::ApplyFilter) {
                 error!("UIMessage send error: {:?}", e);
             }
         }

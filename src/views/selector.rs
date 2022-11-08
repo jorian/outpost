@@ -28,6 +28,10 @@ impl Selector {
     pub fn update(&mut self, reserve_currencies: Vec<Currency>) {
         debug!("update selector overview");
 
+        if !self.view.is_empty() {
+            self.view.set_focus_index(0).unwrap();
+        }
+
         self.view.clear();
         for rc in reserve_currencies {
             self.view

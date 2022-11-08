@@ -1,5 +1,6 @@
 use std::{borrow::Borrow, collections::HashMap};
 
+use tracing::debug;
 use vrsc_rpc::{
     json::{vrsc::Address, Currency},
     Auth, Client, RpcApi,
@@ -116,7 +117,7 @@ impl Verus {
         let mut filtered_currencies: Vec<Currency> = currencies
             .0
             .into_iter()
-            .filter(|currency| [40].contains(&currency.currencydefinition.options))
+            .filter(|currency| [40, 264].contains(&currency.currencydefinition.options))
             .collect();
 
         let currencies = self.client.list_currencies(Some("imported")).unwrap();
@@ -124,7 +125,10 @@ impl Verus {
         let mut pbaas_currencies = currencies
             .0
             .into_iter()
-            .filter(|currency| [264].contains(&currency.currencydefinition.options))
+            .inspect(|cur| {
+                debug!("{:#?}", &cur);
+            })
+            .filter(|currency| [34, 40, 264].contains(&currency.currencydefinition.options))
             .collect();
 
         filtered_currencies.append(&mut pbaas_currencies);
@@ -146,6 +150,8 @@ impl Verus {
             }
         }
     }
+
+    // pub fn currency_id_hex_to_name(&mut self, currencyidhex: String) {}
 }
 
 #[cfg(test)]
