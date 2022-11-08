@@ -9,6 +9,7 @@ use vrsc_rpc::{
 
 use crate::{
     ui::{UIMessage, UI},
+    userdata::Chain,
     util::zmq::*,
     verus::Verus,
     views::log::LogMessage,
@@ -158,9 +159,12 @@ impl Controller {
                             .unwrap();
                     }
                     ControllerMessage::ChainChange(chain) => {
-                        debug!("change the chain to {}", chain);
+                        debug!("change the chain to {}", chain.name);
 
                         self.verus = Verus::new(true, Some(&chain));
+
+                        self.update_selection_screen();
+                        self.update_baskets();
                     }
                 }
             }
@@ -197,5 +201,5 @@ pub enum ControllerMessage {
     NewTransaction(String),
     CurrencySelectionChange,
     CurrencyModeChange,
-    ChainChange(String),
+    ChainChange(Chain),
 }

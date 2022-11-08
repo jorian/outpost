@@ -1,9 +1,11 @@
-use std::collections::HashMap;
+use std::{borrow::Borrow, collections::HashMap};
 
 use vrsc_rpc::{
     json::{vrsc::Address, Currency},
     Auth, Client, RpcApi,
 };
+
+use crate::userdata::Chain;
 
 #[derive(Debug, Clone)]
 pub struct Basket {
@@ -19,11 +21,16 @@ pub struct Verus {
 }
 
 impl Verus {
-    pub fn new(testnet: bool, chain: Option<&str>) -> Self {
+    pub fn new(testnet: bool, chain: Option<&Chain>) -> Self {
         let client = match testnet {
             true => {
                 if let Some(chain) = chain {
-                    Client::chain(chain, Auth::ConfigFile, None).unwrap()
+                    Client::chain(
+                        &chain.name,
+                        Auth::ConfigFile,
+                        chain.currencyidhex.as_deref(),
+                    )
+                    .unwrap()
                 } else {
                     Client::chain("vrsctest", Auth::ConfigFile, None).unwrap()
                 }

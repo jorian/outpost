@@ -28,6 +28,7 @@ impl Selector {
     pub fn update(&mut self, reserve_currencies: Vec<Currency>) {
         debug!("update selector overview");
 
+        self.view.clear();
         for rc in reserve_currencies {
             self.view
                 .add_child(FilterBox::new(rc, self.c_tx.clone()).with_name("filterbox"));
