@@ -19,9 +19,15 @@ pub struct Verus {
 }
 
 impl Verus {
-    pub fn new(testnet: bool) -> Self {
+    pub fn new(testnet: bool, chain: Option<&str>) -> Self {
         let client = match testnet {
-            true => Client::chain("vrsctest", Auth::ConfigFile, None).unwrap(),
+            true => {
+                if let Some(chain) = chain {
+                    Client::chain(chain, Auth::ConfigFile, None).unwrap()
+                } else {
+                    Client::chain("vrsctest", Auth::ConfigFile, None).unwrap()
+                }
+            }
             false => Client::chain("VRSC", Auth::ConfigFile, None).unwrap(),
         };
 
@@ -141,7 +147,7 @@ mod tests {
     fn it_works() {
         use super::*;
 
-        let mut verus = Verus::new(true);
+        let mut verus = Verus::new(true, None);
         verus.get_latest_baskets().unwrap();
     }
 }

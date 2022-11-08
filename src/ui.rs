@@ -3,17 +3,19 @@ use std::sync::mpsc;
 use cursive::{
     view::{Nameable, Resizable},
     views::{LinearLayout, Panel},
-    CursiveRunnable, CursiveRunner,
+    CbSink, CursiveRunnable, CursiveRunner,
 };
 use tracing::debug;
 use vrsc_rpc::json::Currency;
 
 use crate::{
     controller::ControllerMessage,
+    userdata::UserData,
     verus::Basket,
     views::{
         filterbox::FilterBox,
         log::{LogMessage, LogView},
+        pbaas_dialog::PbaasDialog,
         reserves::Reserves,
         selector::Selector,
     },
@@ -55,11 +57,29 @@ pub struct UI {
 // |              |                                                                                   |
 // |--------------------------------------------------------------------------------------------------|
 
+fn gather_pbaas_chains(cb_sink: CbSink) {
+    std::thread::spawn(move || {
+        let data = UserData::new();
+
+        cb_sink.send(Box::new(|siv| siv.set_user_data(data)));
+    });
+}
+
 impl UI {
     pub fn new(c_tx: mpsc::Sender<ControllerMessage>, l_rx: mpsc::Receiver<LogMessage>) -> Self {
         let (ui_tx, ui_rx) = mpsc::channel::<UIMessage>();
         let mut siv = cursive::ncurses().into_runner();
         siv.update_theme(|theme| theme.shadow = false);
+
+        gather_pbaas_chains(siv.cb_sink().clone());
+        let c_tx_clone = c_tx.clone();
+
+        siv.add_global_callback('p', move |s| {
+            if let Some(chains) = s.with_user_data(|data: &mut UserData| data.pbaas_chains.clone())
+            {
+                s.add_layer(PbaasDialog::new(c_tx_clone.clone(), chains));
+            }
+        });
 
         let main_view = LinearLayout::horizontal()
             .child(

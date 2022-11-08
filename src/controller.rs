@@ -32,7 +32,7 @@ impl Controller {
             c_rx,
             l_tx,
             ui: UI::new(c_tx.clone(), l_rx),
-            verus: Verus::new(testnet),
+            verus: Verus::new(testnet, None),
         }
     }
 
@@ -102,7 +102,7 @@ impl Controller {
                                                     ),
                                                     _type: crate::views::log::MessageType::Initiate,
                                                     reserve: currencyname,
-                                                    amount_currency: amount_in_currency,
+                                                    amount_in_currency: amount_in_currency,
                                                     amount_in: vout.value,
                                                     amount_out: None,
                                                 })
@@ -157,6 +157,11 @@ impl Controller {
                             }))
                             .unwrap();
                     }
+                    ControllerMessage::ChainChange(chain) => {
+                        debug!("change the chain to {}", chain);
+
+                        self.verus = Verus::new(true, Some(&chain));
+                    }
                 }
             }
         }
@@ -192,4 +197,5 @@ pub enum ControllerMessage {
     NewTransaction(String),
     CurrencySelectionChange,
     CurrencyModeChange,
+    ChainChange(String),
 }

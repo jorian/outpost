@@ -48,7 +48,11 @@ impl View for LogView {
 
             printer.print(
                 (0, printer.size.y - 1 - linenum - counter + message.height()),
-                &format!("{}", message.amount_in),
+                &format!(
+                    "{} {}",
+                    message.amount_in.as_vrsc(),
+                    message.amount_in_currency
+                ),
             );
             linenum += 1;
 
@@ -100,7 +104,7 @@ pub struct LogMessage {
     pub time: String,
     pub _type: MessageType,
     pub reserve: String,
-    pub amount_currency: String,
+    pub amount_in_currency: String,
     pub amount_in: Amount,
     pub amount_out: Option<f64>,
 }
