@@ -27,16 +27,17 @@ impl Verus {
             true => {
                 if let Some(chain) = chain {
                     Client::chain(
-                        &chain.name.as_ref().unwrap(), //todo
+                        true,
+                        chain.currencyidhex.as_deref().unwrap(),
                         Auth::ConfigFile,
-                        chain.currencyidhex.as_deref(),
                     )
                     .unwrap()
                 } else {
-                    Client::chain("vrsctest", Auth::ConfigFile, None).unwrap()
+                    debug!("We should be getting here");
+                    Client::vrsc(true, Auth::ConfigFile).unwrap()
                 }
             }
-            false => Client::chain("VRSC", Auth::ConfigFile, None).unwrap(),
+            false => Client::vrsc(false, Auth::ConfigFile).unwrap(),
         };
 
         Verus {

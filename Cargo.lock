@@ -1483,7 +1483,7 @@ dependencies = [
 
 [[package]]
 name = "vrsc-rpc"
-version = "0.0.5"
+version = "0.1.0"
 dependencies = [
  "dirs",
  "jsonrpc",
@@ -1497,7 +1497,7 @@ dependencies = [
 
 [[package]]
 name = "vrsc-rpc-json"
-version = "0.0.5"
+version = "0.1.0"
 dependencies = [
  "bitcoin 0.27.1",
  "hex",
