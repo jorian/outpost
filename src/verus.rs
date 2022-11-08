@@ -51,7 +51,7 @@ impl Verus {
         let mut filtered_currencies: Vec<(String, Address)> = currencies
             .0
             .into_iter()
-            .filter(|currency| [33, 545].contains(&currency.currencydefinition.options))
+            .filter(|currency| [33, 35, 545].contains(&currency.currencydefinition.options))
             .map(|currency| {
                 (
                     currency.currencydefinition.fullyqualifiedname,
@@ -75,6 +75,9 @@ impl Verus {
                 })
                 .collect::<Vec<_>>(),
         );
+
+        filtered_currencies.sort_unstable();
+        filtered_currencies.dedup();
 
         let mut last_currency_states = vec![];
 
