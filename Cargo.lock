@@ -918,6 +918,8 @@ dependencies = [
  "cursive",
  "cursive-aligned-view",
  "cursive_table_view",
+ "dirs",
+ "os_info",
  "serde",
  "serde_json",
  "tracing",

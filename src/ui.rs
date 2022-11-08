@@ -114,6 +114,7 @@ impl UI {
             match message {
                 UIMessage::UpdateReserveOverview(baskets) => {
                     debug!("update reserve overview");
+                    debug!("{:?}", &baskets);
 
                     let cb_sink = self.siv.cb_sink().clone();
                     std::thread::spawn(move || {

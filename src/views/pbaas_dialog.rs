@@ -20,13 +20,13 @@ impl PbaasDialog {
         let mut view = Dialog::new();
         let mut sv = SelectView::new();
         for chain in data.into_iter() {
-            sv.add_item(&chain.name, chain.clone());
+            sv.add_item(chain.name.as_ref().unwrap(), chain.clone());
         }
 
         let c_tx_clone = c_tx.clone();
 
         sv.set_on_submit(move |siv, item: &Chain| {
-            debug!("selected {}", &item.name);
+            debug!("selected {:?}", &item.name);
             c_tx_clone
                 .send(ControllerMessage::ChainChange(item.clone()))
                 .unwrap();

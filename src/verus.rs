@@ -26,7 +26,7 @@ impl Verus {
             true => {
                 if let Some(chain) = chain {
                     Client::chain(
-                        &chain.name,
+                        &chain.name.as_ref().unwrap(), //todo
                         Auth::ConfigFile,
                         chain.currencyidhex.as_deref(),
                     )

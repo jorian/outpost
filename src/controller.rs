@@ -159,7 +159,7 @@ impl Controller {
                             .unwrap();
                     }
                     ControllerMessage::ChainChange(chain) => {
-                        debug!("change the chain to {}", chain.name);
+                        debug!("change the chain to {:?}", chain.name);
 
                         self.verus = Verus::new(true, Some(&chain));
 
