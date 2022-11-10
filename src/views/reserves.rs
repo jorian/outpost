@@ -3,7 +3,7 @@ use cursive::{
     views::*,
     View,
 };
-use tracing::{debug, info, instrument};
+use tracing::{debug, info};
 use vrsc_rpc::json::Currency;
 
 use crate::{verus::Basket, views::reservetable::ReserveTable};
@@ -23,13 +23,13 @@ impl Reserves {
         }
     }
 
-    #[instrument(level = "debug", skip(self))]
+    // #[instrument(level = "debug", skip(self))]
     pub fn update_baskets(&mut self, baskets: Vec<Basket>) {
         info!("{} baskets retrieved", baskets.len());
         self.baskets = baskets;
     }
 
-    #[instrument(level = "debug", skip(self))]
+    // #[instrument(level = "debug", skip(self))]
     pub fn update_checked_currencies(&mut self, checked_currencies: Vec<Currency>) {
         debug!("checked_currencies: {:?}", &checked_currencies);
         self.checked_currencies = checked_currencies;

@@ -9,7 +9,7 @@ use vrsc_rpc::{
 
 use crate::{
     ui::{UIMessage, UI},
-    userdata::Chain,
+    userdata::{Chain, UserData},
     util::zmq::*,
     verus::Verus,
     views::log::LogMessage,
@@ -40,6 +40,7 @@ impl Controller {
     pub fn start(&mut self) {
         self.ui.siv.set_autorefresh(false);
 
+        self.gather_pbaas_chains();
         self.update_selection_screen();
         self.update_baskets();
 
@@ -79,7 +80,7 @@ impl Controller {
                                             &vout.script_pubkey.reservetransfer
                                         {
                                             info!("a transfer was initiated: {}", raw_tx.txid);
-                                            info!("{:#?}", reserve_transfer);
+                                            // info!("{:#?}", reserve_transfer);
 
                                             let currencyname = self.verus.currency_id_to_name(
                                                 reserve_transfer.destinationcurrencyid.clone(),
@@ -116,11 +117,11 @@ impl Controller {
                                         // let value =
                                         //     serde_json::to_value(&vout.script_pubkey).unwrap();
 
-                                        if let Some(crosschain_import) =
+                                        if let Some(_crosschain_import) =
                                             &vout.script_pubkey.crosschainimport
                                         {
                                             info!("a transfer was settled: {}", raw_tx.txid);
-                                            info!("crosschainimport {:#?}", crosschain_import);
+                                            // info!("crosschainimport {:#?}", crosschain_import);
 
                                             // let currencyname = self.verus.currency_id_to_name(
                                             //     crosschain_import.importcurrencyid.clone(),
@@ -161,7 +162,7 @@ impl Controller {
                     ControllerMessage::ChainChange(chain) => {
                         debug!("change the chain to {:?}", &chain.name);
 
-                        // at this point we need to know whether we want VRSCTEST or some PBaaS
+                        // todo better now, but still we should not differentiate between verus and non-verus chains at this point
                         if chain.currencyidhex.as_ref().is_some() {
                             self.verus = Verus::new(true, Some(&chain))
                         } else {
@@ -178,7 +179,7 @@ impl Controller {
 
     pub fn update_selection_screen(&mut self) {
         if let Ok(currencies) = self.verus.get_latest_currencies() {
-            debug!("{:#?}", &currencies);
+            // debug!("{:#?}", &currencies);
             if let Err(e) = self
                 .ui
                 .ui_tx
@@ -203,6 +204,22 @@ impl Controller {
                 error!("{:?}", e)
             }
         }
+    }
+
+    pub fn gather_pbaas_chains(&mut self) {
+        let mut data = UserData::new(self.verus.testnet);
+        for chain in data.pbaas_chains.iter_mut() {
+            if let Some(currencyidhex) = chain.currencyidhex.as_deref() {
+                chain.name = Some(self.verus.currency_id_hex_to_name(currencyidhex));
+            }
+        }
+        let ui_tx = self.ui.ui_tx.clone();
+
+        std::thread::spawn(move || {
+            if let Err(e) = ui_tx.send(UIMessage::UpdateActiveChains(data)) {
+                error!("{:?}", e);
+            }
+        });
     }
 }
 

@@ -3,7 +3,7 @@ use std::sync::mpsc;
 use cursive::{
     view::{Nameable, Resizable},
     views::{LinearLayout, Panel},
-    CbSink, CursiveRunnable, CursiveRunner,
+    CursiveRunnable, CursiveRunner,
 };
 use tracing::debug;
 use vrsc_rpc::json::Currency;
@@ -57,21 +57,12 @@ pub struct UI {
 // |              |                                                                                   |
 // |--------------------------------------------------------------------------------------------------|
 
-fn gather_pbaas_chains(cb_sink: CbSink) {
-    std::thread::spawn(move || {
-        let data = UserData::new();
-
-        cb_sink.send(Box::new(|siv| siv.set_user_data(data)));
-    });
-}
-
 impl UI {
     pub fn new(c_tx: mpsc::Sender<ControllerMessage>, l_rx: mpsc::Receiver<LogMessage>) -> Self {
         let (ui_tx, ui_rx) = mpsc::channel::<UIMessage>();
         let mut siv = cursive::ncurses().into_runner();
         siv.update_theme(|theme| theme.shadow = false);
 
-        gather_pbaas_chains(siv.cb_sink().clone());
         let c_tx_clone = c_tx.clone();
 
         siv.add_global_callback('p', move |s| {
@@ -114,7 +105,7 @@ impl UI {
             match message {
                 UIMessage::UpdateReserveOverview(baskets) => {
                     debug!("update reserve overview");
-                    debug!("{:#?}", &baskets);
+                    // debug!("{:#?}", &baskets);
 
                     let cb_sink = self.siv.cb_sink().clone();
                     std::thread::spawn(move || {
@@ -135,6 +126,13 @@ impl UI {
                             selector_view.update(vec);
                         });
                 }
+                UIMessage::UpdateActiveChains(data) => {
+                    let cb_sink = self.siv.cb_sink().clone();
+
+                    cb_sink
+                        .send(Box::new(|siv| siv.set_user_data(data)))
+                        .unwrap();
+                }
                 UIMessage::ApplyFilter => {
                     let mut checked_currencies = vec![];
 
@@ -148,7 +146,7 @@ impl UI {
                                 }
                             });
 
-                            debug!("{:?}", &checked_currencies);
+                            // debug!("{:?}", &checked_currencies);
 
                             s.call_on_name("RESERVES", |reserves_view: &mut Reserves| {
                                 reserves_view.update_checked_currencies(checked_currencies);
@@ -173,6 +171,7 @@ impl UI {
 pub enum UIMessage {
     UpdateReserveOverview(Vec<Basket>),
     UpdateSelectorCurrencies(Vec<Currency>),
+    UpdateActiveChains(UserData),
     ApplyFilter,
     NewLog(String),
 }

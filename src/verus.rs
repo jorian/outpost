@@ -1,6 +1,5 @@
-use std::{borrow::Borrow, collections::HashMap};
+use std::collections::HashMap;
 
-use tracing::{debug, instrument};
 use vrsc_rpc::{
     json::{vrsc::Address, Currency},
     Auth, Client, RpcApi,
@@ -18,7 +17,9 @@ pub struct Basket {
 
 pub struct Verus {
     pub client: Client,
+    pub testnet: bool,
     id_names: HashMap<Address, String>,
+    hex_names: Option<HashMap<String, String>>,
 }
 
 impl Verus {
@@ -33,7 +34,6 @@ impl Verus {
                     )
                     .unwrap()
                 } else {
-                    debug!("We should be getting here");
                     Client::vrsc(true, Auth::ConfigFile).unwrap()
                 }
             }
@@ -42,20 +42,32 @@ impl Verus {
 
         Verus {
             client,
+            testnet,
             id_names: HashMap::new(),
+            hex_names: None,
         }
     }
     pub fn get_latest_baskets(&mut self) -> Result<Vec<Basket>, ()> {
         let currencies = self.client.list_currencies(None).unwrap();
         let active_chain_id = self.client.get_blockchain_info().unwrap();
 
-        // options:33 for fractional baskets
+        // A bridge has 2 sides, so we need to find out which sides in order to include the reserves in our baskets.
+        // A bridge is defined on the subsystem and ties to the system it was launched from.
+        let active_chain_filter = |currency: &Currency| {
+            currency.currencydefinition.systemid == active_chain_id.chainid || {
+                if let Some(launchsystemid) = currency.currencydefinition.launchsystemid.as_ref() {
+                    *launchsystemid == active_chain_id.chainid
+                } else {
+                    true
+                }
+            }
+        };
+
         let mut filtered_currencies: Vec<(String, Address)> = currencies
             .0
             .into_iter()
             .filter(|currency| [33, 35, 545].contains(&currency.currencydefinition.options))
-            // only include baskets that were defined on the chain that is currently active
-            .filter(|currency| currency.currencydefinition.systemid == active_chain_id.chainid)
+            .filter(active_chain_filter)
             .map(|currency| {
                 (
                     currency.currencydefinition.fullyqualifiedname,
@@ -71,7 +83,7 @@ impl Verus {
                 .0
                 .into_iter()
                 .filter(|currency| currency.currencydefinition.options == 545)
-                .filter(|currency| currency.currencydefinition.systemid == active_chain_id.chainid)
+                .filter(active_chain_filter)
                 .map(|currency| {
                     (
                         currency.currencydefinition.fullyqualifiedname,
@@ -117,7 +129,7 @@ impl Verus {
         Ok(last_currency_states)
     }
 
-    // listcurrencies without any arguments returns only 1 264 for VRSCTEST, and listcurrencies(imported) returns all the other minable pbaas currencies.
+    // listcurrencies without any arguments returns only 1 264: VRSCTEST, and listcurrencies(imported) returns all the other minable pbaas currencies.
     pub fn get_latest_currencies(&mut self) -> Result<Vec<Currency>, ()> {
         let currencies = self.client.list_currencies(None).unwrap();
 
@@ -132,9 +144,6 @@ impl Verus {
         let mut pbaas_currencies = currencies
             .0
             .into_iter()
-            .inspect(|cur| {
-                debug!("{:#?}", &cur);
-            })
             .filter(|currency| [34, 40, 264].contains(&currency.currencydefinition.options))
             .collect();
 
@@ -145,7 +154,6 @@ impl Verus {
 
     // TODO do a single getcurrency for all the converters to get their contents and the names?
     pub fn currency_id_to_name(&mut self, currency_id: Address) -> String {
-        dbg!(&currency_id);
         match self.id_names.get(&currency_id) {
             Some(value) => return value.to_owned(),
             None => {
@@ -155,17 +163,43 @@ impl Verus {
                     .unwrap()
                     .fullyqualifiedname;
 
-                // let value = match self.client.get_currency(&currency_id.to_string()) {
-                //     Ok(result) => result.fullyqualifiedname,
-                //     Err(_) => currency_id.to_string(),
-                // };
                 self.id_names.insert(currency_id.clone(), value);
                 self.id_names.get(&currency_id).unwrap().to_owned()
             }
         }
     }
 
-    // pub fn currency_id_hex_to_name(&mut self, currencyidhex: String) {}
+    pub fn currency_id_hex_to_name(&mut self, currencyidhex: &str) -> String {
+        if self.hex_names.is_none() {
+            let mut currencies = self.client.list_currencies(None).unwrap().0;
+
+            currencies.append(
+                self.client
+                    .list_currencies(Some("imported"))
+                    .unwrap()
+                    .0
+                    .as_mut(),
+            );
+
+            let mut hex_map = HashMap::new();
+
+            for currency in currencies {
+                hex_map.insert(
+                    currency.currencydefinition.currencyidhex.clone(),
+                    currency.currencydefinition.name.clone(),
+                );
+            }
+
+            self.hex_names = Some(hex_map);
+        }
+
+        match self.hex_names.as_mut().unwrap().get(currencyidhex) {
+            Some(value) => return value.to_owned(),
+            None => {
+                panic!("no coin found in currencyidhex conversion");
+            }
+        }
+    }
 }
 
 #[cfg(test)]

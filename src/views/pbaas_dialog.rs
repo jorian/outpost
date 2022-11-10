@@ -3,8 +3,8 @@ use std::sync::mpsc;
 use cursive::{
     align::HAlign,
     view::ViewWrapper,
-    views::{Dialog, LinearLayout, SelectView, TextView},
-    wrap_impl, Cursive, View,
+    views::{Dialog, SelectView},
+    wrap_impl,
 };
 use tracing::debug;
 
