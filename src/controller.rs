@@ -159,9 +159,14 @@ impl Controller {
                             .unwrap();
                     }
                     ControllerMessage::ChainChange(chain) => {
-                        debug!("change the chain to {:?}", chain.name);
+                        debug!("change the chain to {:?}", &chain.name);
 
-                        self.verus = Verus::new(true, Some(&chain));
+                        // at this point we need to know whether we want VRSCTEST or some PBaaS
+                        if chain.currencyidhex.as_ref().is_some() {
+                            self.verus = Verus::new(true, Some(&chain))
+                        } else {
+                            self.verus = Verus::new(true, None)
+                        }
 
                         self.update_selection_screen();
                         self.update_baskets();

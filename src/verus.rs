@@ -1,6 +1,6 @@
 use std::{borrow::Borrow, collections::HashMap};
 
-use tracing::debug;
+use tracing::{debug, instrument};
 use vrsc_rpc::{
     json::{vrsc::Address, Currency},
     Auth, Client, RpcApi,
@@ -47,12 +47,15 @@ impl Verus {
     }
     pub fn get_latest_baskets(&mut self) -> Result<Vec<Basket>, ()> {
         let currencies = self.client.list_currencies(None).unwrap();
+        let active_chain_id = self.client.get_blockchain_info().unwrap();
 
         // options:33 for fractional baskets
         let mut filtered_currencies: Vec<(String, Address)> = currencies
             .0
             .into_iter()
             .filter(|currency| [33, 35, 545].contains(&currency.currencydefinition.options))
+            // only include baskets that were defined on the chain that is currently active
+            .filter(|currency| currency.currencydefinition.systemid == active_chain_id.chainid)
             .map(|currency| {
                 (
                     currency.currencydefinition.fullyqualifiedname,
@@ -68,6 +71,7 @@ impl Verus {
                 .0
                 .into_iter()
                 .filter(|currency| currency.currencydefinition.options == 545)
+                .filter(|currency| currency.currencydefinition.systemid == active_chain_id.chainid)
                 .map(|currency| {
                     (
                         currency.currencydefinition.fullyqualifiedname,
@@ -114,7 +118,6 @@ impl Verus {
     }
 
     // listcurrencies without any arguments returns only 1 264 for VRSCTEST, and listcurrencies(imported) returns all the other minable pbaas currencies.
-    // this works really well with our use case, because we can now show a list of currencies except the one we always support: VRSCTEST
     pub fn get_latest_currencies(&mut self) -> Result<Vec<Currency>, ()> {
         let currencies = self.client.list_currencies(None).unwrap();
 
@@ -140,7 +143,9 @@ impl Verus {
         Ok(filtered_currencies)
     }
 
+    // TODO do a single getcurrency for all the converters to get their contents and the names?
     pub fn currency_id_to_name(&mut self, currency_id: Address) -> String {
+        dbg!(&currency_id);
         match self.id_names.get(&currency_id) {
             Some(value) => return value.to_owned(),
             None => {
@@ -149,6 +154,11 @@ impl Verus {
                     .get_currency(&currency_id.to_string())
                     .unwrap()
                     .fullyqualifiedname;
+
+                // let value = match self.client.get_currency(&currency_id.to_string()) {
+                //     Ok(result) => result.fullyqualifiedname,
+                //     Err(_) => currency_id.to_string(),
+                // };
                 self.id_names.insert(currency_id.clone(), value);
                 self.id_names.get(&currency_id).unwrap().to_owned()
             }
