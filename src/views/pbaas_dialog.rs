@@ -8,7 +8,7 @@ use cursive::{
 };
 use tracing::debug;
 
-use crate::{controller::ControllerMessage, userdata::Chain};
+use crate::{controller::ControllerMessage, userdata::PBaaSChain};
 
 pub struct PbaasDialog {
     c_tx: mpsc::Sender<ControllerMessage>,
@@ -16,7 +16,7 @@ pub struct PbaasDialog {
 }
 
 impl PbaasDialog {
-    pub fn new(c_tx: mpsc::Sender<ControllerMessage>, data: Vec<Chain>) -> Self {
+    pub fn new(c_tx: mpsc::Sender<ControllerMessage>, data: Vec<PBaaSChain>) -> Self {
         let mut view = Dialog::new();
         let mut sv = SelectView::new();
         for chain in data.into_iter() {
@@ -25,7 +25,7 @@ impl PbaasDialog {
 
         let c_tx_clone = c_tx.clone();
 
-        sv.set_on_submit(move |siv, item: &Chain| {
+        sv.set_on_submit(move |siv, item: &PBaaSChain| {
             debug!("selected {:?}", &item.name);
             c_tx_clone
                 .send(ControllerMessage::ChainChange(item.clone()))

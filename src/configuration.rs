@@ -35,6 +35,10 @@ pub fn get_configuration() -> Result<ApplicationSettings, config::ConfigError> {
     settings.try_deserialize::<ApplicationSettings>()
 }
 
+pub fn write_configuration(config: &ApplicationSettings) {
+    todo!()
+}
+
 pub enum Environment {
     Local,
     Development,

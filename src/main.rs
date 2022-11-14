@@ -13,7 +13,7 @@ use tracing_subscriber::EnvFilter;
 fn main() {
     let config = get_configuration().expect("failed to read configuration");
 
-    logging_setup();
+    logging_setup(); // TODO add RUST_LOG env to config
 
     let mut controller = Controller::new(config.testnet);
 

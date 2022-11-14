@@ -1,7 +1,7 @@
 use std::{str::FromStr, sync::mpsc};
 
 use chrono::Local;
-use tracing::{debug, error, info};
+use tracing::{debug, error, info, instrument};
 use vrsc_rpc::{
     bitcoin::{hashes::sha256d::Hash, Txid},
     RpcApi,
@@ -9,7 +9,7 @@ use vrsc_rpc::{
 
 use crate::{
     ui::{UIMessage, UI},
-    userdata::{Chain, UserData},
+    userdata::{PBaaSChain, UserData},
     util::zmq::*,
     verus::Verus,
     views::log::LogMessage,
@@ -37,6 +37,7 @@ impl Controller {
         }
     }
 
+    // #[instrument(level = "debug", skip(self))]
     pub fn start(&mut self) {
         self.ui.siv.set_autorefresh(false);
 
@@ -228,5 +229,5 @@ pub enum ControllerMessage {
     NewTransaction(String),
     CurrencySelectionChange,
     CurrencyModeChange,
-    ChainChange(Chain),
+    ChainChange(PBaaSChain),
 }

@@ -5,7 +5,7 @@ use vrsc_rpc::{
     Auth, Client, RpcApi,
 };
 
-use crate::userdata::Chain;
+use crate::userdata::PBaaSChain;
 
 #[derive(Debug, Clone)]
 pub struct Basket {
@@ -23,7 +23,7 @@ pub struct Verus {
 }
 
 impl Verus {
-    pub fn new(testnet: bool, chain: Option<&Chain>) -> Self {
+    pub fn new(testnet: bool, chain: Option<&PBaaSChain>) -> Self {
         let client = match testnet {
             true => {
                 if let Some(chain) = chain {
