@@ -10,23 +10,15 @@ use os_info::Type as OSType;
 use tracing::error;
 use url::Url;
 
-pub struct UserData {
-    pub pbaas_chains: Vec<PBaaSChain>,
-}
+// pub struct UserData {
+//     pub pbaas_chains: Vec<PBaaSChain>,
+// }
 
-impl UserData {
-    pub fn new(testnet: bool) -> Self {
-        let mut pbaas_chains = local_pbaas_chains(testnet);
-
-        for chain in pbaas_chains.iter_mut() {
-            if let Err(e) = chain.set_zmq_ports() {
-                error!("could not set zmq ports for {}: {}", chain.currencyidhex, e)
-            }
-        }
-
-        UserData { pbaas_chains }
-    }
-}
+// impl UserData {
+//     pub fn new(testnet: bool) -> Self {
+//         UserData { pbaas_chains }
+//     }
+// }
 
 /// Every PBaaS chain has at least a currencyidhex. It is the only identifier to determine locally installed chains,
 /// as it is used to denote the data directory for that PBaaS chain.
@@ -129,7 +121,7 @@ fn get_config_file(currencyidhex: &str) -> PathBuf {
 /// Some assumptions have been made:
 /// - the .verustest/VerusTest directory has not been edited by a user. It assumes that all the directories that are found in .verustest are
 /// PBaaS chains. No guarantees can be given about each directory being an actual PBaaS chain.
-fn local_pbaas_chains(testnet: bool) -> Vec<PBaaSChain> {
+pub fn local_pbaas_chains(testnet: bool) -> Vec<PBaaSChain> {
     pbaas_dir_entries(testnet)
         .filter_map(|d| d.ok())
         .map(|dir| {

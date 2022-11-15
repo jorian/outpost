@@ -10,7 +10,7 @@ use vrsc_rpc::json::Currency;
 
 use crate::{
     controller::ControllerMessage,
-    userdata::UserData,
+    // userdata::UserData,
     verus::Basket,
     views::{
         filterbox::FilterBox,
@@ -66,10 +66,7 @@ impl UI {
         let c_tx_clone = c_tx.clone();
 
         siv.add_global_callback('p', move |s| {
-            if let Some(chains) = s.with_user_data(|data: &mut UserData| data.pbaas_chains.clone())
-            {
-                s.add_layer(PbaasDialog::new(c_tx_clone.clone(), chains));
-            }
+            c_tx_clone.send(ControllerMessage::PBaaSDialog);
         });
 
         let main_view = LinearLayout::horizontal()
@@ -126,13 +123,7 @@ impl UI {
                             selector_view.update(vec);
                         });
                 }
-                UIMessage::UpdateActiveChains(data) => {
-                    let cb_sink = self.siv.cb_sink().clone();
 
-                    cb_sink
-                        .send(Box::new(|siv| siv.set_user_data(data)))
-                        .unwrap();
-                }
                 UIMessage::ApplyFilter => {
                     let mut checked_currencies = vec![];
 
@@ -171,7 +162,6 @@ impl UI {
 pub enum UIMessage {
     UpdateReserveOverview(Vec<Basket>),
     UpdateSelectorCurrencies(Vec<Currency>),
-    UpdateActiveChains(UserData),
     ApplyFilter,
     NewLog(String),
 }

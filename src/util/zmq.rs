@@ -1,67 +1,80 @@
-use std::sync::mpsc;
+use std::{
+    sync::{mpsc, Arc},
+    thread,
+};
 
 use tracing::{debug, error, info};
-use zmq::Socket;
+use zmq::{Context, Socket};
 
 use crate::controller::ControllerMessage;
 
-#[allow(unused)]
-pub fn zmq_tx_notify(c_tx: mpsc::Sender<ControllerMessage>) {
-    let zmq_port = 27779; // TODO something to set in a config
-
-    let socket = zmq_socket_setup(zmq_port);
-    let c_tx_clone = c_tx.clone();
-
-    std::thread::spawn(move || loop {
-        let data = socket.recv_multipart(0).unwrap();
-        let tx_hex = data[1]
-            .iter()
-            .map(|b| format!("{:02x}", *b))
-            .collect::<Vec<_>>()
-            .join("");
-
-        debug!("new tx: {}", &tx_hex);
-
-        c_tx_clone
-            .send(ControllerMessage::NewTransaction(tx_hex))
-            .unwrap();
-    });
+pub struct ZMQController {
+    context: Context,
+    c_tx: mpsc::Sender<ControllerMessage>,
 }
 
-pub fn zmq_block_notify(c_tx: mpsc::Sender<ControllerMessage>) {
-    let zmq_port = 27780; // TODO something to set in a config
-    let socket = zmq_socket_setup(zmq_port);
+impl ZMQController {
+    pub fn new(c_tx: mpsc::Sender<ControllerMessage>) -> Self {
+        let context = zmq::Context::new();
 
-    let c_tx_clone = c_tx.clone();
+        ZMQController { context, c_tx }
+    }
 
-    std::thread::spawn(move || loop {
-        let data = socket.recv_multipart(0).unwrap();
-        let block_hash = data[1]
-            .iter()
-            .map(|b| format!("{:02x}", *b))
-            .collect::<Vec<_>>()
-            .join("");
+    pub fn tx_listener(&mut self, port: u16) {
+        let socket = self.context.socket(zmq::SUB).expect("a new zmq socket");
+        let socket = socket;
+        socket
+            .connect(&format!("tcp://127.0.0.1:{}", port))
+            .expect("a connection to the zmq socket");
+        socket
+            .set_subscribe(b"hash")
+            .expect("failed subscribing to zmq");
 
-        debug!("new block: {}", &block_hash);
+        info!("ZMQ listening for transactions on port {}", port);
 
-        if let Err(e) = c_tx_clone.send(ControllerMessage::NewBlock(block_hash)) {
-            error!("NewBlock send error: {:?}", e)
-        }
-    });
-}
+        let c_tx_clone = self.c_tx.clone();
 
-pub fn zmq_socket_setup(port: u16) -> Socket {
-    let zmq_context = zmq::Context::new();
+        let handle = std::thread::spawn(move || loop {
+            let data = socket.recv_multipart(0).unwrap();
+            let hex = data[1]
+                .iter()
+                .map(|b| format!("{:02x}", *b))
+                .collect::<Vec<_>>()
+                .join("");
 
-    let socket = zmq_context.socket(zmq::SUB).expect("a new zmq socket");
-    socket
-        .connect(&format!("tcp://127.0.0.1:{}", port))
-        .expect("a connection to the zmq socket");
-    socket
-        .set_subscribe(b"hash")
-        .expect("failed subscribing to zmq");
+            debug!("new tx: {}", &hex);
 
-    info!("ZMQ listening on port {}", port);
+            c_tx_clone
+                .send(ControllerMessage::NewTransaction(hex))
+                .unwrap();
+        });
+    }
 
-    socket
+    pub fn block_listener(&mut self, port: u16) {
+        let socket = self.context.socket(zmq::SUB).expect("a new zmq socket");
+        let socket = socket;
+        socket
+            .connect(&format!("tcp://127.0.0.1:{}", port))
+            .expect("a connection to the zmq socket");
+        socket
+            .set_subscribe(b"hash")
+            .expect("failed subscribing to zmq");
+
+        info!("ZMQ listening for blocks on port {}", port);
+
+        let c_tx_clone = self.c_tx.clone();
+
+        let handle = std::thread::spawn(move || loop {
+            let data = socket.recv_multipart(0).unwrap();
+            let hex = data[1]
+                .iter()
+                .map(|b| format!("{:02x}", *b))
+                .collect::<Vec<_>>()
+                .join("");
+
+            debug!("new block: {}", &hex);
+
+            c_tx_clone.send(ControllerMessage::NewBlock(hex)).unwrap();
+        });
+    }
 }

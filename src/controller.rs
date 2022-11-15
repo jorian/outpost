@@ -9,7 +9,7 @@ use vrsc_rpc::{
 
 use crate::{
     ui::{UIMessage, UI},
-    userdata::{PBaaSChain, UserData},
+    userdata::{local_pbaas_chains, PBaaSChain},
     util::zmq::*,
     verus::Verus,
     views::log::LogMessage,
@@ -20,28 +20,47 @@ pub struct Controller {
     pub l_tx: mpsc::Sender<LogMessage>,
     pub ui: UI,
     pub verus: Verus,
+    pub zmq_controller: ZMQController,
+    pbaas_chains: Vec<PBaaSChain>,
 }
 
 impl Controller {
     pub fn new(testnet: bool) -> Self {
         let (c_tx, c_rx) = mpsc::channel::<ControllerMessage>();
         let (l_tx, l_rx) = mpsc::channel::<LogMessage>();
-        zmq_block_notify(c_tx.clone());
-        zmq_tx_notify(c_tx.clone());
 
-        Controller {
+        let zmq_controller = ZMQController::new(c_tx.clone());
+
+        let mut controller = Controller {
             c_rx,
             l_tx,
             ui: UI::new(c_tx.clone(), l_rx),
             verus: Verus::new(testnet, None),
+            zmq_controller,
+            pbaas_chains: vec![],
+        };
+
+        controller.gather_pbaas_chains(testnet);
+
+        controller
+    }
+
+    fn zmq_listeners(&mut self) {
+        for chain in self.pbaas_chains.iter() {
+            if let Some(port) = chain.zmqhashblock {
+                self.zmq_controller.block_listener(port);
+            }
+
+            if let Some(port) = chain.zmqhashtx {
+                self.zmq_controller.tx_listener(port);
+            }
         }
     }
 
-    // #[instrument(level = "debug", skip(self))]
     pub fn start(&mut self) {
         self.ui.siv.set_autorefresh(false);
 
-        self.gather_pbaas_chains();
+        self.zmq_listeners();
         self.update_selection_screen();
         self.update_baskets();
 
@@ -161,6 +180,9 @@ impl Controller {
                             .unwrap();
                     }
                     ControllerMessage::ChainChange(chain) => {
+                        // stop listening for messages on previous chain
+                        // start listening on newly selected chain
+
                         debug!("change the chain to {:?}", &chain.name);
 
                         // todo better now, but still we should not differentiate between verus and non-verus chains at this point
@@ -170,6 +192,7 @@ impl Controller {
                         self.update_selection_screen();
                         self.update_baskets();
                     }
+                    ControllerMessage::PBaaSDialog => {}
                 }
             }
         }
@@ -177,7 +200,6 @@ impl Controller {
 
     pub fn update_selection_screen(&mut self) {
         if let Ok(currencies) = self.verus.get_latest_currencies() {
-            // debug!("{:#?}", &currencies);
             if let Err(e) = self
                 .ui
                 .ui_tx
@@ -204,18 +226,20 @@ impl Controller {
         }
     }
 
-    pub fn gather_pbaas_chains(&mut self) {
-        let mut data = UserData::new(self.verus.testnet);
-        for chain in data.pbaas_chains.iter_mut() {
+    pub fn gather_pbaas_chains(&mut self, testnet: bool) {
+        let mut pbaas_chains = local_pbaas_chains(testnet);
+
+        for chain in pbaas_chains.iter_mut() {
+            if let Err(e) = chain.set_zmq_ports() {
+                error!("could not set zmq ports for {}: {}", chain.currencyidhex, e)
+            }
+        }
+
+        for chain in pbaas_chains.iter_mut() {
             chain.name = Some(self.verus.currency_id_hex_to_name(&chain.currencyidhex));
         }
-        let ui_tx = self.ui.ui_tx.clone();
 
-        std::thread::spawn(move || {
-            if let Err(e) = ui_tx.send(UIMessage::UpdateActiveChains(data)) {
-                error!("{:?}", e);
-            }
-        });
+        self.pbaas_chains = pbaas_chains
     }
 }
 
@@ -225,4 +249,5 @@ pub enum ControllerMessage {
     CurrencySelectionChange,
     CurrencyModeChange,
     ChainChange(PBaaSChain),
+    PBaaSDialog,
 }
