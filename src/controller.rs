@@ -164,11 +164,8 @@ impl Controller {
                         debug!("change the chain to {:?}", &chain.name);
 
                         // todo better now, but still we should not differentiate between verus and non-verus chains at this point
-                        if chain.currencyidhex.as_ref().is_some() {
-                            self.verus = Verus::new(true, Some(&chain))
-                        } else {
-                            self.verus = Verus::new(true, None)
-                        }
+
+                        self.verus = Verus::new(true, Some(&chain));
 
                         self.update_selection_screen();
                         self.update_baskets();
@@ -210,9 +207,7 @@ impl Controller {
     pub fn gather_pbaas_chains(&mut self) {
         let mut data = UserData::new(self.verus.testnet);
         for chain in data.pbaas_chains.iter_mut() {
-            if let Some(currencyidhex) = chain.currencyidhex.as_deref() {
-                chain.name = Some(self.verus.currency_id_hex_to_name(currencyidhex));
-            }
+            chain.name = Some(self.verus.currency_id_hex_to_name(&chain.currencyidhex));
         }
         let ui_tx = self.ui.ui_tx.clone();
 

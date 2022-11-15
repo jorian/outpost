@@ -27,12 +27,7 @@ impl Verus {
         let client = match testnet {
             true => {
                 if let Some(chain) = chain {
-                    Client::chain(
-                        true,
-                        chain.currencyidhex.as_deref().unwrap(),
-                        Auth::ConfigFile,
-                    )
-                    .unwrap()
+                    Client::chain(true, &chain.currencyidhex, Auth::ConfigFile).unwrap()
                 } else {
                     Client::vrsc(true, Auth::ConfigFile).unwrap()
                 }
