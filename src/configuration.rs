@@ -35,7 +35,7 @@ pub fn get_configuration() -> Result<ApplicationSettings, config::ConfigError> {
     settings.try_deserialize::<ApplicationSettings>()
 }
 
-pub fn write_configuration(config: &ApplicationSettings) {
+pub fn write_configuration(_config: &ApplicationSettings) {
     todo!()
 }
 

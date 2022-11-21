@@ -10,6 +10,7 @@ use vrsc_rpc::json::Currency;
 
 use crate::{
     controller::ControllerMessage,
+    verus::pbaas::PBaaSChain,
     // userdata::UserData,
     verus::Basket,
     views::{
@@ -65,8 +66,10 @@ impl UI {
 
         let c_tx_clone = c_tx.clone();
 
-        siv.add_global_callback('p', move |s| {
-            c_tx_clone.send(ControllerMessage::PBaaSDialog);
+        siv.add_global_callback('p', move |_s| {
+            c_tx_clone
+                .send(ControllerMessage::PBaaSDialog(c_tx_clone.clone()))
+                .unwrap();
         });
 
         let main_view = LinearLayout::horizontal()
@@ -150,6 +153,14 @@ impl UI {
                 UIMessage::NewLog(message) => {
                     debug!("let's put a message in the log for {}", message);
                 }
+                UIMessage::PBaasDialog(c_tx, labels) => {
+                    let cb_sink = self.siv.cb_sink().clone();
+                    cb_sink
+                        .send(Box::new(|s| {
+                            s.add_layer(PbaasDialog::new(c_tx, labels));
+                        }))
+                        .unwrap();
+                }
             }
         }
 
@@ -164,4 +175,5 @@ pub enum UIMessage {
     UpdateSelectorCurrencies(Vec<Currency>),
     ApplyFilter,
     NewLog(String),
+    PBaasDialog(mpsc::Sender<ControllerMessage>, Vec<String>),
 }

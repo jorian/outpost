@@ -1,10 +1,5 @@
 use os_info::Type as OSType;
-use std::{
-    collections::HashMap,
-    ffi::OsStr,
-    fs::ReadDir,
-    path::{Path, PathBuf},
-};
+use std::{collections::HashMap, ffi::OsStr, fs::ReadDir, path::PathBuf};
 use vrsc_rpc::{json::vrsc::Address, Auth, Client, RpcApi};
 
 use super::Chain;
@@ -13,20 +8,11 @@ pub struct PBaaSChain {
     testnet: bool,
     name: Option<String>, // the name of a PBaaSChain can only be retrieved by querying a verus daemon at runtime
     currencyidhex: String,
-    config_dir: PathBuf,
     client: Client,
     id_names: HashMap<Address, String>,
 }
 
 impl Chain for PBaaSChain {
-    // fn get_config_dir(&self) -> &Path {
-    //     self.config_dir.as_path()
-    // }
-
-    // fn get_config_file(&self) -> &Path {
-    //     self.config_dir.as_path()
-    // }
-
     fn testnet(&self) -> bool {
         self.testnet
     }
@@ -74,7 +60,7 @@ impl Chain for PBaaSChain {
 }
 
 impl PBaaSChain {
-    pub fn new(testnet: bool, currencyidhex: String, config_dir: &Path) -> Self {
+    pub fn new(testnet: bool, currencyidhex: String) -> Self {
         let client = Client::chain(testnet, &currencyidhex, Auth::ConfigFile).unwrap();
         // unwrap: we can unwrap this because a pbaas chain instance is only created when it is locally found.
 
@@ -82,7 +68,6 @@ impl PBaaSChain {
             testnet,
             name: None,
             currencyidhex,
-            config_dir: config_dir.into(),
             client,
             id_names: HashMap::new(),
         }
@@ -123,7 +108,7 @@ fn pbaas_dir_location(testnet: bool) -> Option<PathBuf> {
     }
 }
 
-fn get_config_dir(currencyidhex: &OsStr) -> PathBuf {
+fn _get_config_dir(currencyidhex: &OsStr) -> PathBuf {
     if let Some(mut pbaas_dir) = pbaas_dir_location(true) {
         pbaas_dir.push(&currencyidhex);
 
@@ -134,7 +119,7 @@ fn get_config_dir(currencyidhex: &OsStr) -> PathBuf {
 }
 
 fn _get_config_file(currencyidhex: &str) -> PathBuf {
-    let mut config_dir = get_config_dir(currencyidhex.as_ref());
+    let mut config_dir = _get_config_dir(currencyidhex.as_ref());
     config_dir.push(&format!("{}.conf", &currencyidhex));
 
     config_dir
@@ -149,12 +134,7 @@ pub fn local_pbaas_chains(testnet: bool) -> Vec<PBaaSChain> {
         .filter_map(|d| d.ok())
         .map(|dir| {
             let currencyidhex = dir.file_name();
-            let config_dir = get_config_dir(&currencyidhex);
-            PBaaSChain::new(
-                testnet,
-                currencyidhex.to_string_lossy().to_string(),
-                &config_dir,
-            )
+            PBaaSChain::new(testnet, currencyidhex.to_string_lossy().to_string())
         })
         .collect()
 }

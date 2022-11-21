@@ -8,34 +8,33 @@ use cursive::{
 };
 use tracing::debug;
 
-use crate::{controller::ControllerMessage, userdata::PBaaSChain};
+use crate::controller::ControllerMessage;
 
 pub struct PbaasDialog {
-    c_tx: mpsc::Sender<ControllerMessage>,
     view: Dialog,
 }
 
 impl PbaasDialog {
-    pub fn new(c_tx: mpsc::Sender<ControllerMessage>, data: Vec<PBaaSChain>) -> Self {
+    pub fn new(c_tx: mpsc::Sender<ControllerMessage>, data: Vec<String>) -> Self {
         let mut view = Dialog::new();
         let mut sv = SelectView::new();
-        for chain in data.into_iter() {
-            sv.add_item(chain.name.as_ref().unwrap(), chain.clone());
+        for chain in data.iter() {
+            sv.add_item(chain, chain.to_string());
         }
 
         let c_tx_clone = c_tx.clone();
 
-        sv.set_on_submit(move |siv, item: &PBaaSChain| {
-            debug!("selected {:?}", &item.name);
+        sv.set_on_submit(move |siv, item: &str| {
+            debug!("selected {:?}", &item);
             c_tx_clone
-                .send(ControllerMessage::ChainChange(item.clone()))
+                .send(ControllerMessage::ChainChange(item.to_string()))
                 .unwrap();
             siv.pop_layer();
         });
 
         view.set_content(sv.h_align(HAlign::Left));
 
-        PbaasDialog { c_tx, view }
+        PbaasDialog { view }
     }
 }
 

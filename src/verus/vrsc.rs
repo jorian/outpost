@@ -1,7 +1,4 @@
-use std::{
-    collections::HashMap,
-    path::{Path, PathBuf},
-};
+use std::collections::HashMap;
 
 use vrsc_rpc::{json::vrsc::Address, Client, RpcApi};
 

@@ -1,7 +1,7 @@
 use std::{str::FromStr, sync::mpsc};
 
 use chrono::Local;
-use tracing::{debug, error, info, instrument};
+use tracing::{debug, error, info};
 use vrsc_rpc::{
     bitcoin::{hashes::sha256d::Hash, Txid},
     RpcApi,
@@ -9,8 +9,8 @@ use vrsc_rpc::{
 
 use crate::{
     ui::{UIMessage, UI},
-    userdata::{local_pbaas_chains, PBaaSChain},
     util::zmq::*,
+    verus::pbaas::{local_pbaas_chains, PBaaSChain},
     verus::{vrsc::VerusChain, Chain},
     views::log::LogMessage,
 };
@@ -21,7 +21,7 @@ pub struct Controller {
     pub ui: UI,
     pub verus: Box<dyn Chain>,
     pub zmq_controller: ZMQController,
-    pbaas_chains: Vec<PBaaSChain>,
+    pbaas_chains: Vec<Box<dyn Chain>>,
 }
 
 impl Controller {
@@ -45,22 +45,22 @@ impl Controller {
         controller
     }
 
-    fn zmq_listeners(&mut self) {
-        for chain in self.pbaas_chains.iter() {
-            if let Some(port) = chain.zmqhashblock {
-                self.zmq_controller.block_listener(port);
-            }
+    // fn zmq_listeners(&mut self) {
+    //     for chain in self.pbaas_chains.iter() {
+    //         if let Some(port) = chain.zmqhashblock {
+    //             self.zmq_controller.block_listener(port);
+    //         }
 
-            if let Some(port) = chain.zmqhashtx {
-                self.zmq_controller.tx_listener(port);
-            }
-        }
-    }
+    //         if let Some(port) = chain.zmqhashtx {
+    //             self.zmq_controller.tx_listener(port);
+    //         }
+    //     }
+    // }
 
     pub fn start(&mut self) {
         self.ui.siv.set_autorefresh(false);
 
-        self.zmq_listeners();
+        // self.zmq_listeners();
         self.update_selection_screen();
         self.update_baskets();
 
@@ -180,19 +180,20 @@ impl Controller {
                             .unwrap();
                     }
                     ControllerMessage::ChainChange(chain) => {
-                        // stop listening for messages on previous chain
-                        // start listening on newly selected chain
-
-                        debug!("change the chain to {:?}", &chain.name);
-
-                        // todo better now, but still we should not differentiate between verus and non-verus chains at this point
+                        debug!("change the chain to {:?}", &chain);
 
                         self.verus = Box::new(VerusChain::new(true));
 
                         self.update_selection_screen();
                         self.update_baskets();
                     }
-                    ControllerMessage::PBaaSDialog => {}
+                    ControllerMessage::PBaaSDialog(c_tx) => {
+                        let labels = self.pbaas_chains.iter().map(|c| c.get_name()).collect();
+
+                        self.ui.ui_tx.send(UIMessage::PBaasDialog(c_tx, labels));
+                        // get all chains
+                        // send a UI message to initiate a PBaas Dialog view
+                    }
                 }
             }
         }
@@ -228,19 +229,18 @@ impl Controller {
     }
 
     pub fn gather_pbaas_chains(&mut self, testnet: bool) {
-        let mut pbaas_chains = local_pbaas_chains(testnet);
+        let mut all_chains: Vec<Box<dyn Chain>> = vec![];
 
-        for chain in pbaas_chains.iter_mut() {
-            if let Err(e) = chain.set_zmq_ports() {
-                error!("could not set zmq ports for {}: {}", chain.currencyidhex, e)
-            }
-        }
+        let v_chain = Box::new(VerusChain::new(true));
+        let local_chains = local_pbaas_chains(true);
 
-        // for chain in pbaas_chains.iter_mut() {
-        //     chain.name = Some(self.verus.currency_id_hex_to_name(&chain.currencyidhex));
-        // }
+        all_chains.push(v_chain);
+        local_chains.into_iter().for_each(|mut c| {
+            c.set_name();
+            all_chains.push(Box::new(c));
+        });
 
-        self.pbaas_chains = pbaas_chains
+        self.pbaas_chains = all_chains;
     }
 }
 
@@ -249,6 +249,6 @@ pub enum ControllerMessage {
     NewTransaction(String),
     CurrencySelectionChange,
     CurrencyModeChange,
-    ChainChange(PBaaSChain),
-    PBaaSDialog,
+    ChainChange(String),
+    PBaaSDialog(mpsc::Sender<ControllerMessage>),
 }

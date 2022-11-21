@@ -1,7 +1,6 @@
 pub mod configuration;
 pub mod controller;
 pub mod ui;
-pub mod userdata;
 pub mod util;
 pub mod verus;
 pub mod views;
