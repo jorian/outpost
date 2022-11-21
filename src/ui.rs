@@ -10,8 +10,6 @@ use vrsc_rpc::json::Currency;
 
 use crate::{
     controller::ControllerMessage,
-    verus::pbaas::PBaaSChain,
-    // userdata::UserData,
     verus::Basket,
     views::{
         filterbox::FilterBox,
@@ -30,33 +28,6 @@ pub struct UI {
     ui_rx: UIReceiver,
     pub ui_tx: UISender,
 }
-
-// 2 modes:
-// - reserve currency mode
-// - basket mode
-
-// |--------------------------------------------------------------------------------------------------|
-// | ______menubar___________________________________________________________________________________ |
-// |              |                                                                                   |
-// |  [ ] VRSC    |   VRSC-ETH                                                                        |
-// |  [ ] BTC     |   -> VRSC                                                       1.23456789        |
-// |  [x] vETH    |   -> vETH                                                       0.12345678        |
-// |  [ ] USDc    |                                                                                   |
-// |              |                                                                                   |
-// |              |                                                                                   |
-// |              |                                                                                   |
-// |              |                                                                                   |
-// |              |                                                                                   |
-// |              |                                                                                   |
-// |              |                                                                                   |
-// |              |                                                                                   |
-// |              |                                                                                   |
-// |              |                                                                                   |
-// |              |                                                                                   |
-// |              |                                                                                   |
-// |              |                                                                                   |
-// |              |                                                                                   |
-// |--------------------------------------------------------------------------------------------------|
 
 impl UI {
     pub fn new(c_tx: mpsc::Sender<ControllerMessage>, l_rx: mpsc::Receiver<LogMessage>) -> Self {

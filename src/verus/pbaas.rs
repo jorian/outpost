@@ -53,10 +53,6 @@ impl Chain for PBaaSChain {
             }
         }
     }
-
-    fn get_latest_currencies(&self) -> Result<Vec<vrsc_rpc::json::Currency>, ()> {
-        todo!()
-    }
 }
 
 impl PBaaSChain {

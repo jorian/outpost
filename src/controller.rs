@@ -1,4 +1,8 @@
-use std::{str::FromStr, sync::mpsc};
+use std::{
+    rc::Rc,
+    str::FromStr,
+    sync::{mpsc, RwLock},
+};
 
 use chrono::Local;
 use tracing::{debug, error, info};
@@ -10,7 +14,7 @@ use vrsc_rpc::{
 use crate::{
     ui::{UIMessage, UI},
     util::zmq::*,
-    verus::pbaas::{local_pbaas_chains, PBaaSChain},
+    verus::pbaas::local_pbaas_chains,
     verus::{vrsc::VerusChain, Chain},
     views::log::LogMessage,
 };
@@ -19,9 +23,9 @@ pub struct Controller {
     pub c_rx: mpsc::Receiver<ControllerMessage>,
     pub l_tx: mpsc::Sender<LogMessage>,
     pub ui: UI,
-    pub verus: Box<dyn Chain>,
     pub zmq_controller: ZMQController,
-    pbaas_chains: Vec<Box<dyn Chain>>,
+    pbaas_chains: Vec<Rc<RwLock<Box<dyn Chain>>>>,
+    active_chain: Rc<RwLock<Box<dyn Chain>>>,
 }
 
 impl Controller {
@@ -30,17 +34,17 @@ impl Controller {
         let (l_tx, l_rx) = mpsc::channel::<LogMessage>();
 
         let zmq_controller = ZMQController::new(c_tx.clone());
+        let pbaas_chains = gather_pbaas_chains(testnet);
+        let first = Rc::clone(pbaas_chains.first().unwrap());
 
-        let mut controller = Controller {
+        let controller = Controller {
             c_rx,
             l_tx,
             ui: UI::new(c_tx.clone(), l_rx),
-            verus: Box::new(VerusChain::new(testnet)),
             zmq_controller,
-            pbaas_chains: vec![],
+            pbaas_chains: pbaas_chains,
+            active_chain: first,
         };
-
-        controller.gather_pbaas_chains(testnet);
 
         controller
     }
@@ -92,7 +96,13 @@ impl Controller {
 
                         let hash = Hash::from_str(&txid).unwrap();
                         let txid = Txid::from_hash(hash);
-                        match self.verus.client().get_raw_transaction_verbose(&txid) {
+                        match self
+                            .active_chain
+                            .read()
+                            .unwrap()
+                            .client()
+                            .get_raw_transaction_verbose(&txid)
+                        {
                             Ok(raw_tx) => {
                                 if raw_tx.confirmations.is_none() {
                                     for vout in &raw_tx.vout {
@@ -102,19 +112,32 @@ impl Controller {
                                             info!("a transfer was initiated: {}", raw_tx.txid);
                                             // info!("{:#?}", reserve_transfer);
 
-                                            let currencyname = self.verus.currency_id_to_name(
-                                                reserve_transfer.destinationcurrencyid.clone(),
-                                            );
+                                            let currencyname = self
+                                                .active_chain
+                                                .write()
+                                                .and_then(|mut c| {
+                                                    Ok(c.currency_id_to_name(
+                                                        reserve_transfer
+                                                            .destinationcurrencyid
+                                                            .clone(),
+                                                    ))
+                                                })
+                                                .unwrap();
 
-                                            let amount_in_currency =
-                                                self.verus.currency_id_to_name(
-                                                    reserve_transfer
-                                                        .currencyvalues
-                                                        .keys()
-                                                        .last()
-                                                        .unwrap()
-                                                        .to_owned(),
-                                                );
+                                            let amount_in_currency = self
+                                                .active_chain
+                                                .write()
+                                                .and_then(|mut c| {
+                                                    Ok(c.currency_id_to_name(
+                                                        reserve_transfer
+                                                            .currencyvalues
+                                                            .keys()
+                                                            .last()
+                                                            .unwrap()
+                                                            .to_owned(),
+                                                    ))
+                                                })
+                                                .unwrap();
 
                                             self.l_tx
                                                 .send(LogMessage {
@@ -182,17 +205,27 @@ impl Controller {
                     ControllerMessage::ChainChange(chain) => {
                         debug!("change the chain to {:?}", &chain);
 
-                        self.verus = Box::new(VerusChain::new(true));
+                        self.active_chain = Rc::clone(
+                            self.pbaas_chains
+                                .iter()
+                                .find(|c| c.read().unwrap().get_name() == chain)
+                                .unwrap(),
+                        );
 
                         self.update_selection_screen();
                         self.update_baskets();
                     }
                     ControllerMessage::PBaaSDialog(c_tx) => {
-                        let labels = self.pbaas_chains.iter().map(|c| c.get_name()).collect();
+                        let labels = self
+                            .pbaas_chains
+                            .iter()
+                            .map(|c| c.read().unwrap().get_name())
+                            .collect();
 
-                        self.ui.ui_tx.send(UIMessage::PBaasDialog(c_tx, labels));
-                        // get all chains
-                        // send a UI message to initiate a PBaas Dialog view
+                        self.ui
+                            .ui_tx
+                            .send(UIMessage::PBaasDialog(c_tx, labels))
+                            .unwrap();
                     }
                 }
             }
@@ -200,48 +233,52 @@ impl Controller {
     }
 
     pub fn update_selection_screen(&mut self) {
-        if let Ok(currencies) = self.verus.get_latest_currencies() {
-            if let Err(e) = self
-                .ui
-                .ui_tx
-                .send(UIMessage::UpdateSelectorCurrencies(currencies))
-            {
-                error!("UIMessage send error: {:?}", e);
-            }
+        if let Ok(write) = self.active_chain.write() {
+            if let Ok(currencies) = write.get_latest_currencies() {
+                if let Err(e) = self
+                    .ui
+                    .ui_tx
+                    .send(UIMessage::UpdateSelectorCurrencies(currencies))
+                {
+                    error!("UIMessage send error: {:?}", e);
+                }
 
-            if let Err(e) = self.ui.ui_tx.send(UIMessage::ApplyFilter) {
-                error!("UIMessage send error: {:?}", e);
+                if let Err(e) = self.ui.ui_tx.send(UIMessage::ApplyFilter) {
+                    error!("UIMessage send error: {:?}", e);
+                }
             }
         }
     }
 
     pub fn update_baskets(&mut self) {
-        // if let Ok(baskets) = self.active_chain.get_latest_baskets() {
-        if let Ok(baskets) = self.verus.get_latest_baskets() {
-            if let Err(e) = self
-                .ui
-                .ui_tx
-                .send(UIMessage::UpdateReserveOverview(baskets))
-            {
-                error!("{:?}", e)
+        if let Ok(mut write) = self.active_chain.write() {
+            if let Ok(baskets) = write.get_latest_baskets() {
+                if let Err(e) = self
+                    .ui
+                    .ui_tx
+                    .send(UIMessage::UpdateReserveOverview(baskets))
+                {
+                    error!("{:?}", e)
+                }
             }
         }
     }
+}
 
-    pub fn gather_pbaas_chains(&mut self, testnet: bool) {
-        let mut all_chains: Vec<Box<dyn Chain>> = vec![];
+pub fn gather_pbaas_chains(testnet: bool) -> Vec<Rc<RwLock<Box<dyn Chain>>>> {
+    let mut all_chains: Vec<Rc<RwLock<Box<dyn Chain>>>> = vec![];
 
-        let v_chain = Box::new(VerusChain::new(true));
-        let local_chains = local_pbaas_chains(true);
+    let v_chain: Rc<RwLock<Box<dyn Chain>>> =
+        Rc::new(RwLock::new(Box::new(VerusChain::new(testnet))));
+    all_chains.push(v_chain);
 
-        all_chains.push(v_chain);
-        local_chains.into_iter().for_each(|mut c| {
-            c.set_name();
-            all_chains.push(Box::new(c));
-        });
+    let local_chains = local_pbaas_chains(testnet);
+    local_chains.into_iter().for_each(|mut c| {
+        c.set_name();
+        all_chains.push(Rc::new(RwLock::new(Box::new(c))));
+    });
 
-        self.pbaas_chains = all_chains;
-    }
+    all_chains
 }
 
 pub enum ControllerMessage {
