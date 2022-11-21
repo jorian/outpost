@@ -11,7 +11,7 @@ use crate::{
     ui::{UIMessage, UI},
     userdata::{local_pbaas_chains, PBaaSChain},
     util::zmq::*,
-    verus::Verus,
+    verus::{vrsc::VerusChain, Chain},
     views::log::LogMessage,
 };
 
@@ -19,7 +19,7 @@ pub struct Controller {
     pub c_rx: mpsc::Receiver<ControllerMessage>,
     pub l_tx: mpsc::Sender<LogMessage>,
     pub ui: UI,
-    pub verus: Verus,
+    pub verus: Box<dyn Chain>,
     pub zmq_controller: ZMQController,
     pbaas_chains: Vec<PBaaSChain>,
 }
@@ -35,7 +35,7 @@ impl Controller {
             c_rx,
             l_tx,
             ui: UI::new(c_tx.clone(), l_rx),
-            verus: Verus::new(testnet, None),
+            verus: Box::new(VerusChain::new(testnet)),
             zmq_controller,
             pbaas_chains: vec![],
         };
@@ -92,7 +92,7 @@ impl Controller {
 
                         let hash = Hash::from_str(&txid).unwrap();
                         let txid = Txid::from_hash(hash);
-                        match self.verus.client.get_raw_transaction_verbose(&txid) {
+                        match self.verus.client().get_raw_transaction_verbose(&txid) {
                             Ok(raw_tx) => {
                                 if raw_tx.confirmations.is_none() {
                                     for vout in &raw_tx.vout {
@@ -187,7 +187,7 @@ impl Controller {
 
                         // todo better now, but still we should not differentiate between verus and non-verus chains at this point
 
-                        self.verus = Verus::new(true, Some(&chain));
+                        self.verus = Box::new(VerusChain::new(true));
 
                         self.update_selection_screen();
                         self.update_baskets();
@@ -215,6 +215,7 @@ impl Controller {
     }
 
     pub fn update_baskets(&mut self) {
+        // if let Ok(baskets) = self.active_chain.get_latest_baskets() {
         if let Ok(baskets) = self.verus.get_latest_baskets() {
             if let Err(e) = self
                 .ui
@@ -235,9 +236,9 @@ impl Controller {
             }
         }
 
-        for chain in pbaas_chains.iter_mut() {
-            chain.name = Some(self.verus.currency_id_hex_to_name(&chain.currencyidhex));
-        }
+        // for chain in pbaas_chains.iter_mut() {
+        //     chain.name = Some(self.verus.currency_id_hex_to_name(&chain.currencyidhex));
+        // }
 
         self.pbaas_chains = pbaas_chains
     }

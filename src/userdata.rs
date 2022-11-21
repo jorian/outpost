@@ -20,6 +20,8 @@ use url::Url;
 //     }
 // }
 
+// pub trait Chain {}
+
 /// Every PBaaS chain has at least a currencyidhex. It is the only identifier to determine locally installed chains,
 /// as it is used to denote the data directory for that PBaaS chain.
 ///
