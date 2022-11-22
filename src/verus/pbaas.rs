@@ -1,6 +1,8 @@
 use os_info::Type as OSType;
-use std::{collections::HashMap, fs::ReadDir, path::PathBuf};
+use std::{collections::HashMap, fs::ReadDir, path::PathBuf, rc::Rc};
 use vrsc_rpc::{json::vrsc::Address, Auth, Client, RpcApi};
+
+use crate::controller::IdNames;
 
 use super::{read_config_contents, Chain};
 
@@ -9,7 +11,7 @@ pub struct PBaaSChain {
     name: Option<String>, // the name of a PBaaSChain can only be retrieved by querying a verus daemon at runtime
     currencyidhex: String,
     client: Client,
-    id_names: HashMap<Address, String>,
+    id_names: IdNames,
 }
 
 impl Chain for PBaaSChain {
@@ -56,24 +58,24 @@ impl Chain for PBaaSChain {
     }
 
     fn currency_id_to_name(&mut self, currency_id: Address) -> String {
-        match self.id_names.get(&currency_id) {
-            Some(value) => return value.to_owned(),
-            None => {
-                let value = self
-                    .client
-                    .get_currency(&currency_id.to_string())
-                    .unwrap()
-                    .fullyqualifiedname;
-
-                self.id_names.insert(currency_id.clone(), value);
-                self.id_names.get(&currency_id).unwrap().to_owned()
-            }
+        if let Ok(mut write) = self.id_names.write() {
+            write
+                .entry(currency_id.to_string())
+                .or_insert_with(|| {
+                    self.client()
+                        .get_currency(&currency_id.to_string())
+                        .unwrap()
+                        .fullyqualifiedname
+                })
+                .clone()
+        } else {
+            String::new()
         }
     }
 }
 
 impl PBaaSChain {
-    pub fn new(testnet: bool, currencyidhex: String) -> Self {
+    pub fn new(testnet: bool, currencyidhex: String, id_names: IdNames) -> Self {
         let client = Client::chain(testnet, &currencyidhex, Auth::ConfigFile).unwrap();
         // unwrap: we can unwrap this because a pbaas chain instance is only created when it is locally found.
 
@@ -82,7 +84,7 @@ impl PBaaSChain {
             name: None,
             currencyidhex,
             client,
-            id_names: HashMap::new(),
+            id_names,
         }
     }
 }
@@ -125,12 +127,16 @@ fn pbaas_dir_location(testnet: bool) -> Option<PathBuf> {
 /// Some assumptions have been made:
 /// - the .verustest/VerusTest directory has not been edited by a user. It assumes that all the directories that are found in .verustest are
 /// PBaaS chains. No guarantees can be given about each directory being an actual PBaaS chain.
-pub fn local_pbaas_chains(testnet: bool) -> Vec<PBaaSChain> {
+pub fn local_pbaas_chains(testnet: bool, id_names: IdNames) -> Vec<PBaaSChain> {
     pbaas_dir_entries(testnet)
         .filter_map(|d| d.ok())
         .map(|dir| {
             let currencyidhex = dir.file_name();
-            PBaaSChain::new(testnet, currencyidhex.to_string_lossy().to_string())
+            PBaaSChain::new(
+                testnet,
+                currencyidhex.to_string_lossy().to_string(),
+                Rc::clone(&id_names),
+            )
         })
         .collect()
 }

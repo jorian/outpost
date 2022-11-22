@@ -1,4 +1,5 @@
 use std::{
+    collections::HashMap,
     rc::Rc,
     str::FromStr,
     sync::{mpsc, RwLock},
@@ -18,12 +19,15 @@ use crate::{
     views::log::LogMessage,
 };
 
+pub type IdNames = Rc<RwLock<HashMap<String, String>>>;
+
 pub struct Controller {
     pub c_rx: mpsc::Receiver<ControllerMessage>,
     pub l_tx: mpsc::Sender<LogMessage>,
     pub ui: UI,
     pbaas_chains: Vec<Rc<RwLock<Box<dyn Chain>>>>,
     active_chain: Rc<RwLock<Box<dyn Chain>>>,
+    id_names: IdNames,
 }
 
 impl Controller {
@@ -31,7 +35,9 @@ impl Controller {
         let (c_tx, c_rx) = mpsc::channel::<ControllerMessage>();
         let (l_tx, l_rx) = mpsc::channel::<LogMessage>();
 
-        let pbaas_chains = gather_pbaas_chains(testnet);
+        let id_names = Rc::new(RwLock::new(HashMap::new()));
+
+        let pbaas_chains = gather_pbaas_chains(testnet, Rc::clone(&id_names));
         let first = Rc::clone(pbaas_chains.first().unwrap());
 
         for chain in pbaas_chains.iter() {
@@ -47,6 +53,7 @@ impl Controller {
             ui: UI::new(c_tx.clone(), l_rx),
             pbaas_chains: pbaas_chains,
             active_chain: first,
+            id_names,
         };
 
         controller
@@ -102,38 +109,55 @@ impl Controller {
                                                         raw_tx.txid
                                                     );
 
-                                                    let currencyname = self
-                                                        .active_chain
-                                                        .read()
-                                                        .unwrap()
-                                                        .client()
-                                                        .get_currency(
-                                                            &reserve_transfer
-                                                                .destinationcurrencyid
-                                                                .to_string(),
-                                                        )
-                                                        .unwrap()
-                                                        .fullyqualifiedname;
+                                                    if let Ok(mut write) = self.id_names.write() {
+                                                        let currencyname = write
+                                                            .entry(
+                                                                reserve_transfer
+                                                                    .destinationcurrencyid
+                                                                    .to_string(),
+                                                            )
+                                                            .or_insert_with(|| {
+                                                                self.active_chain
+                                                                    .read()
+                                                                    .unwrap()
+                                                                    .client()
+                                                                    .get_currency(
+                                                                        &reserve_transfer
+                                                                            .destinationcurrencyid
+                                                                            .to_string(),
+                                                                    )
+                                                                    .unwrap()
+                                                                    .fullyqualifiedname
+                                                            })
+                                                            .clone();
 
-                                                    debug!("currencyname: {}", &currencyname);
+                                                        debug!("currencyname: {}", &currencyname);
 
-                                                    let amount_in_currency = self
-                                                        .active_chain
-                                                        .read()
-                                                        .unwrap()
-                                                        .client()
-                                                        .get_currency(
-                                                            &reserve_transfer
-                                                                .currencyvalues
-                                                                .keys()
-                                                                .last()
-                                                                .unwrap()
-                                                                .to_string(),
-                                                        )
-                                                        .unwrap()
-                                                        .fullyqualifiedname;
+                                                        let amount_in_currency = write
+                                                            .entry(
+                                                                reserve_transfer
+                                                                    .currencyvalues
+                                                                    .keys()
+                                                                    .last()
+                                                                    .unwrap()
+                                                                    .to_string(),
+                                                            )
+                                                            .or_insert_with(|| {
+                                                                self.active_chain
+                                                                    .read()
+                                                                    .unwrap()
+                                                                    .client()
+                                                                    .get_currency(
+                                                                        &reserve_transfer
+                                                                            .destinationcurrencyid
+                                                                            .to_string(),
+                                                                    )
+                                                                    .unwrap()
+                                                                    .fullyqualifiedname
+                                                            })
+                                                            .clone();
 
-                                                    self.l_tx
+                                                        self.l_tx
                                                         .send(LogMessage {
                                                             time: format!(
                                                                 "{}",
@@ -146,6 +170,7 @@ impl Controller {
                                                             amount_out: None,
                                                         })
                                                         .unwrap();
+                                                    }
                                                 }
                                             }
                                         }
@@ -272,14 +297,16 @@ impl Controller {
     }
 }
 
-pub fn gather_pbaas_chains(testnet: bool) -> Vec<Rc<RwLock<Box<dyn Chain>>>> {
+pub fn gather_pbaas_chains(testnet: bool, id_names: IdNames) -> Vec<Rc<RwLock<Box<dyn Chain>>>> {
     let mut all_chains: Vec<Rc<RwLock<Box<dyn Chain>>>> = vec![];
 
-    let v_chain: Rc<RwLock<Box<dyn Chain>>> =
-        Rc::new(RwLock::new(Box::new(VerusChain::new(testnet))));
+    let v_chain: Rc<RwLock<Box<dyn Chain>>> = Rc::new(RwLock::new(Box::new(VerusChain::new(
+        testnet,
+        Rc::clone(&id_names),
+    ))));
     all_chains.push(v_chain);
 
-    let local_chains = local_pbaas_chains(testnet);
+    let local_chains = local_pbaas_chains(testnet, Rc::clone(&id_names));
     local_chains.into_iter().for_each(|mut c| {
         c.set_name();
         all_chains.push(Rc::new(RwLock::new(Box::new(c))));

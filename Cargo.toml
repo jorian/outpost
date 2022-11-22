@@ -14,7 +14,7 @@ cursive_table_view = {git = "https://github.com/BonsaiDen/cursive_table_view"}
 tracing = "0.1"
 tracing-subscriber = {version = "0.3", features = ["env-filter", "std"]}
 vrsc-rpc = {path = "../rust-vrsc-rpc/client"}
-zmq = "0.9"
+zmq = "0.10"
 serde = "1.0"
 serde_json = "1.0"
 config = "0.13"
