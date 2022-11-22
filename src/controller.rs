@@ -1,9 +1,15 @@
 use std::{
     rc::Rc,
+    str::FromStr,
     sync::{mpsc, RwLock},
 };
 
+use chrono::Local;
 use tracing::{debug, error, info};
+use vrsc_rpc::{
+    bitcoin::{hashes::sha256d::Hash, Txid},
+    RpcApi,
+};
 
 use crate::{
     ui::{UIMessage, UI},
@@ -69,11 +75,122 @@ impl Controller {
                         self.update_baskets();
                     }
                     ControllerMessage::NewTransaction(chain_name, txid) => {
+                        // todo need to fix deadlock
                         if let Ok(read) = self.active_chain.read() {
                             if !(read.get_name() == chain_name) {
                                 debug!("do not process, name is not the same");
                             } else {
                                 debug!("process this tx: {}", txid);
+
+                                let hash = Hash::from_str(&txid).unwrap();
+                                let txid = Txid::from_hash(hash);
+                                match self
+                                    .active_chain
+                                    .read()
+                                    .unwrap()
+                                    .client()
+                                    .get_raw_transaction_verbose(&txid)
+                                {
+                                    Ok(raw_tx) => {
+                                        if raw_tx.confirmations.is_none() {
+                                            for vout in &raw_tx.vout {
+                                                if let Some(reserve_transfer) =
+                                                    &vout.script_pubkey.reservetransfer
+                                                {
+                                                    debug!(
+                                                        "a transfer was initiated: {}",
+                                                        raw_tx.txid
+                                                    );
+
+                                                    let currencyname = self
+                                                        .active_chain
+                                                        .read()
+                                                        .unwrap()
+                                                        .client()
+                                                        .get_currency(
+                                                            &reserve_transfer
+                                                                .destinationcurrencyid
+                                                                .to_string(),
+                                                        )
+                                                        .unwrap()
+                                                        .fullyqualifiedname;
+
+                                                    debug!("currencyname: {}", &currencyname);
+
+                                                    let amount_in_currency = self
+                                                        .active_chain
+                                                        .read()
+                                                        .unwrap()
+                                                        .client()
+                                                        .get_currency(
+                                                            &reserve_transfer
+                                                                .currencyvalues
+                                                                .keys()
+                                                                .last()
+                                                                .unwrap()
+                                                                .to_string(),
+                                                        )
+                                                        .unwrap()
+                                                        .fullyqualifiedname;
+
+                                                    self.l_tx
+                                                        .send(LogMessage {
+                                                            time: format!(
+                                                                "{}",
+                                                                Local::now().format("%H:%M:%S")
+                                                            ),
+                                                            _type: crate::views::log::MessageType::Initiate,
+                                                            reserve: currencyname,
+                                                            amount_in_currency: amount_in_currency,
+                                                            amount_in: vout.value,
+                                                            amount_out: None,
+                                                        })
+                                                        .unwrap();
+                                                }
+                                            }
+                                        }
+                                        if raw_tx.confirmations.is_some() {
+                                            for vout in &raw_tx.vout {
+                                                // let value =
+                                                //     serde_json::to_value(&vout.script_pubkey).unwrap();
+
+                                                if let Some(_crosschain_import) =
+                                                    &vout.script_pubkey.crosschainimport
+                                                {
+                                                    info!(
+                                                        "a transfer was settled: {}",
+                                                        raw_tx.txid
+                                                    );
+                                                    // info!("crosschainimport {:#?}", crosschain_import);
+
+                                                    // let currencyname = self.verus.currency_id_to_name(
+                                                    //     crosschain_import.importcurrencyid.clone(),
+                                                    // );
+
+                                                    // self.l_tx
+                                                    //     .send(LogMessage {
+                                                    //         time: format!(
+                                                    //             "{}",
+                                                    //             Local::now().format("%H:%M:%S")
+                                                    //         ),
+                                                    //         _type: crate::views::log::MessageType::Initiate,
+                                                    //         reserve: currencyname,
+                                                    //         amount_in: crosschain_import
+                                                    //             .valuein
+                                                    //             .as_f64()
+                                                    //             .unwrap(), //.as_vrsc(),
+                                                    //         amount_out: None,
+                                                    //     })
+                                                    //     .unwrap();
+                                                }
+                                                // if let Some(object) = value["reserveoutput"].as_object() {
+                                                //     info!("reserveoutput {:#?}", object);
+                                                // }
+                                            }
+                                        }
+                                    }
+                                    Err(e) => error!("{:?}", e),
+                                }
                             }
                         }
                         // 1d878bf932c406647374cafa9019ee5b00c581309e01f772d6e147f34b6bc601 = reservetransfer > spenttxid
@@ -84,107 +201,6 @@ impl Controller {
 
                         // 1b04030001011504af02625e74df9de1cf78921e0690ab94b2d6c603cc3604030901011504af02625e74df9de1cf78921e0690ab94b2d6c6031a0176f89c6dc26d4d775b3dceef7ad4f1d3efd35a0380e9aacb0d75
                         // 1b04030001011504af02625e74df9de1cf78921e0690ab94b2d6c603cc3604030901011504af02625e74df9de1cf78921e0690ab94b2d6c6031a0176f89c6dc26d4d775b3dceef7ad4f1d3efd35a0380e9c8bf0775
-
-                        // let hash = Hash::from_str(&txid).unwrap();
-                        // let txid = Txid::from_hash(hash);
-                        // match self
-                        //     .active_chain
-                        //     .read()
-                        //     .unwrap()
-                        //     .client()
-                        //     .get_raw_transaction_verbose(&txid)
-                        // {
-                        //     Ok(raw_tx) => {
-                        //         if raw_tx.confirmations.is_none() {
-                        //             for vout in &raw_tx.vout {
-                        //                 if let Some(reserve_transfer) =
-                        //                     &vout.script_pubkey.reservetransfer
-                        //                 {
-                        //                     info!("a transfer was initiated: {}", raw_tx.txid);
-                        //                     // info!("{:#?}", reserve_transfer);
-
-                        //                     let currencyname = self
-                        //                         .active_chain
-                        //                         .write()
-                        //                         .and_then(|mut c| {
-                        //                             Ok(c.currency_id_to_name(
-                        //                                 reserve_transfer
-                        //                                     .destinationcurrencyid
-                        //                                     .clone(),
-                        //                             ))
-                        //                         })
-                        //                         .unwrap();
-
-                        //                     let amount_in_currency = self
-                        //                         .active_chain
-                        //                         .write()
-                        //                         .and_then(|mut c| {
-                        //                             Ok(c.currency_id_to_name(
-                        //                                 reserve_transfer
-                        //                                     .currencyvalues
-                        //                                     .keys()
-                        //                                     .last()
-                        //                                     .unwrap()
-                        //                                     .to_owned(),
-                        //                             ))
-                        //                         })
-                        //                         .unwrap();
-
-                        //                     self.l_tx
-                        //                         .send(LogMessage {
-                        //                             time: format!(
-                        //                                 "{}",
-                        //                                 Local::now().format("%H:%M:%S")
-                        //                             ),
-                        //                             _type: crate::views::log::MessageType::Initiate,
-                        //                             reserve: currencyname,
-                        //                             amount_in_currency: amount_in_currency,
-                        //                             amount_in: vout.value,
-                        //                             amount_out: None,
-                        //                         })
-                        //                         .unwrap();
-                        //                 }
-                        //             }
-                        //         }
-                        //         if raw_tx.confirmations.is_some() {
-                        //             for vout in &raw_tx.vout {
-                        //                 // let value =
-                        //                 //     serde_json::to_value(&vout.script_pubkey).unwrap();
-
-                        //                 if let Some(_crosschain_import) =
-                        //                     &vout.script_pubkey.crosschainimport
-                        //                 {
-                        //                     info!("a transfer was settled: {}", raw_tx.txid);
-                        //                     // info!("crosschainimport {:#?}", crosschain_import);
-
-                        //                     // let currencyname = self.verus.currency_id_to_name(
-                        //                     //     crosschain_import.importcurrencyid.clone(),
-                        //                     // );
-
-                        //                     // self.l_tx
-                        //                     //     .send(LogMessage {
-                        //                     //         time: format!(
-                        //                     //             "{}",
-                        //                     //             Local::now().format("%H:%M:%S")
-                        //                     //         ),
-                        //                     //         _type: crate::views::log::MessageType::Initiate,
-                        //                     //         reserve: currencyname,
-                        //                     //         amount_in: crosschain_import
-                        //                     //             .valuein
-                        //                     //             .as_f64()
-                        //                     //             .unwrap(), //.as_vrsc(),
-                        //                     //         amount_out: None,
-                        //                     //     })
-                        //                     //     .unwrap();
-                        //                 }
-                        //                 // if let Some(object) = value["reserveoutput"].as_object() {
-                        //                 //     info!("reserveoutput {:#?}", object);
-                        //                 // }
-                        //             }
-                        //         }
-                        //     }
-                        //     Err(e) => error!("{:?}", e),
-                        // }
 
                         let cb_sink = self.ui.siv.cb_sink().clone();
                         cb_sink

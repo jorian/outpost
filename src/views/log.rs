@@ -69,32 +69,6 @@ impl View for LogView {
                 (0, printer.size.y - 1 - linenum - counter + message.height()),
                 "-------------------",
             )
-
-            // match message._type {
-            //     MessageType::Initiate => {
-            //         printer.print(
-            //             (0, printer.size.y - 1 - i),
-            //             &format!(
-            //                 "{} transfer initiated: {} | amount in: {} {}",
-            //                 message.time,
-            //                 message.reserve.as_str().trim_matches('"'),
-            //                 message.amount_in.as_vrsc(),
-            //                 message.amount_currency
-            //             ),
-            //         );
-            //     }
-            //     MessageType::Settle => {
-            //         printer.print(
-            //             (0, printer.size.y - 1 - i),
-            //             &format!(
-            //                 "{} transfer settled: {} | amount in: {}",
-            //                 message.time,
-            //                 message.reserve.as_str().trim_matches('"'),
-            //                 message.amount_in
-            //             ),
-            //         );
-            //     }
-            // }
         }
     }
 }
@@ -124,5 +98,3 @@ pub enum MessageType {
     Initiate,
     Settle,
 }
-
-// impl View for LogMessage {}
