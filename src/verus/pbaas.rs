@@ -1,8 +1,8 @@
 use os_info::Type as OSType;
-use std::{collections::HashMap, ffi::OsStr, fs::ReadDir, path::PathBuf};
+use std::{collections::HashMap, fs::ReadDir, path::PathBuf};
 use vrsc_rpc::{json::vrsc::Address, Auth, Client, RpcApi};
 
-use super::Chain;
+use super::{read_config_contents, Chain};
 
 pub struct PBaaSChain {
     testnet: bool,
@@ -13,6 +13,23 @@ pub struct PBaaSChain {
 }
 
 impl Chain for PBaaSChain {
+    fn get_config_dir(&self) -> PathBuf {
+        if let Some(mut pbaas_dir) = pbaas_dir_location(true) {
+            pbaas_dir.push(&self.currencyidhex);
+
+            return pbaas_dir;
+        } else {
+            panic!("no config dir found");
+        }
+    }
+
+    fn get_config_file(&self) -> HashMap<String, String> {
+        let mut config_dir = self.get_config_dir();
+        config_dir.push(&format!("{}.conf", &self.currencyidhex));
+
+        read_config_contents(&config_dir)
+    }
+
     fn testnet(&self) -> bool {
         self.testnet
     }
@@ -102,23 +119,6 @@ fn pbaas_dir_location(testnet: bool) -> Option<PathBuf> {
         }
         _ => None,
     }
-}
-
-fn _get_config_dir(currencyidhex: &OsStr) -> PathBuf {
-    if let Some(mut pbaas_dir) = pbaas_dir_location(true) {
-        pbaas_dir.push(&currencyidhex);
-
-        return pbaas_dir;
-    } else {
-        panic!("no config dir found");
-    }
-}
-
-fn _get_config_file(currencyidhex: &str) -> PathBuf {
-    let mut config_dir = _get_config_dir(currencyidhex.as_ref());
-    config_dir.push(&format!("{}.conf", &currencyidhex));
-
-    config_dir
 }
 
 /// Gets all the locally installed PBaaS chains.

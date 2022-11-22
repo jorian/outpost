@@ -3,17 +3,123 @@ pub mod vrsc;
 
 use std::collections::HashMap;
 use std::fmt::Debug;
+use std::fs;
+use std::path::{Path, PathBuf};
+use std::str::FromStr;
+use std::sync::mpsc;
 
+use tracing::{debug, error, info};
 use vrsc_rpc::json::vrsc::Address;
 use vrsc_rpc::json::Currency;
 use vrsc_rpc::{Client, RpcApi};
 
+use crate::controller::ControllerMessage;
+
 pub trait Chain {
     fn get_name(&self) -> String;
     fn set_name(&mut self);
+    fn get_config_dir(&self) -> PathBuf;
+    fn get_config_file(&self) -> HashMap<String, String>;
     fn testnet(&self) -> bool;
     fn currencyidhex(&self) -> String;
     fn client(&self) -> &Client;
+
+    fn start_zmq_tx_listener(&self, c_tx: mpsc::Sender<ControllerMessage>) {
+        let config_file = self.get_config_file();
+        if let Some(zmqpubhashtx) = config_file.get("zmqpubhashtx") {
+            if let Ok(zmqpubhashtxurl) = url::Url::from_str(zmqpubhashtx) {
+                if let Some(port) = zmqpubhashtxurl.port() {
+                    let context = zmq::Context::new();
+
+                    let socket = context.socket(zmq::SUB).expect("a new zmq socket");
+                    let socket = socket;
+                    socket
+                        .connect(&format!("tcp://127.0.0.1:{}", port))
+                        .expect("a connection to the zmq socket");
+                    socket
+                        .set_subscribe(b"hash")
+                        .expect("failed subscribing to zmq");
+
+                    info!(
+                        "ZMQ listening for transactions on {} using port {}",
+                        &self.get_name(),
+                        port
+                    );
+
+                    let c_tx_clone = c_tx.clone();
+                    let name = self.get_name().clone();
+
+                    std::thread::spawn(move || loop {
+                        let data = socket.recv_multipart(0).unwrap();
+                        let hex = data[1]
+                            .iter()
+                            .map(|b| format!("{:02x}", *b))
+                            .collect::<Vec<_>>()
+                            .join("");
+
+                        debug!("new tx: {}", &hex);
+
+                        c_tx_clone
+                            .send(ControllerMessage::NewTransaction(name.clone(), hex))
+                            .unwrap();
+                    });
+                } else {
+                    error!("zmqpubhashtx port missing in config file")
+                }
+            } else {
+                error!("zmqpubhashtx missing in config file")
+            }
+        }
+    }
+
+    fn start_zmq_block_listener(&self, c_tx: mpsc::Sender<ControllerMessage>) {
+        let config_file = self.get_config_file();
+        if let Some(zmqpubhashblock) = config_file.get("zmqpubhashblock") {
+            if let Ok(zmqpubhashblockurl) = url::Url::from_str(zmqpubhashblock) {
+                if let Some(port) = zmqpubhashblockurl.port() {
+                    let context = zmq::Context::new();
+
+                    let socket = context.socket(zmq::SUB).expect("a new zmq socket");
+                    let socket = socket;
+                    socket
+                        .connect(&format!("tcp://127.0.0.1:{}", port))
+                        .expect("a connection to the zmq socket");
+                    socket
+                        .set_subscribe(b"hash")
+                        .expect("failed subscribing to zmq");
+
+                    info!(
+                        "ZMQ listening for blocks on {} using port {}",
+                        &self.get_name(),
+                        port
+                    );
+
+                    let c_tx_clone = c_tx.clone();
+                    let name = self.get_name().clone();
+
+                    std::thread::spawn(move || loop {
+                        let data = socket.recv_multipart(0).unwrap();
+                        let hex = data[1]
+                            .iter()
+                            .map(|b| format!("{:02x}", *b))
+                            .collect::<Vec<_>>()
+                            .join("");
+
+                        debug!("new block: {}", &hex);
+
+                        c_tx_clone
+                            .send(ControllerMessage::NewBlock(name.clone(), hex))
+                            .unwrap();
+                    });
+                } else {
+                    error!("zmqpubhashblock port missing in config file")
+                }
+            } else {
+                error!("zmqpubhashblock missing in config file")
+            }
+        }
+    }
+
     fn currency_id_to_name(&mut self, currency_id: Address) -> String;
 
     fn get_latest_currencies(&self) -> Result<Vec<Currency>, ()> {
@@ -135,129 +241,16 @@ pub struct Basket {
     pub currencynames: HashMap<Address, String>,
 }
 
-// pub fn get_latest_baskets(chain: &Box<dyn Chain>) -> Result<Vec<Basket>, ()> {}
+fn read_config_contents(path: &Path) -> HashMap<String, String> {
+    let contents = fs::read_to_string(path.to_str().unwrap()).unwrap();
 
-/*use std::collections::HashMap;
+    let map: HashMap<String, String> = contents
+        .as_str()
+        .split('\n')
+        .map(|line| line.splitn(2, '=').collect::<Vec<&str>>())
+        .filter(|vec| vec.len() == 2)
+        .map(|vec| (vec[0].to_string(), vec[1].to_string()))
+        .collect::<HashMap<String, String>>();
 
-use vrsc_rpc::{
-    json::{vrsc::Address, Currency},
-    Auth, Client, RpcApi,
-};
-
-use crate::userdata::PBaaSChain;
-
-
-
-pub struct Verus {
-    pub client: Client,
-    pub testnet: bool,
-    id_names: HashMap<Address, String>,
-    hex_names: Option<HashMap<String, String>>,
+    map
 }
-
-impl Verus {
-    pub fn new(testnet: bool, chain: Option<&PBaaSChain>) -> Self {
-        let client = match testnet {
-            true => {
-                if let Some(chain) = chain {
-                    Client::chain(true, &chain.currencyidhex, Auth::ConfigFile).unwrap()
-                } else {
-                    Client::vrsc(true, Auth::ConfigFile).unwrap()
-                }
-            }
-            false => Client::vrsc(false, Auth::ConfigFile).unwrap(),
-        };
-
-        Verus {
-            client,
-            testnet,
-            id_names: HashMap::new(),
-            hex_names: None,
-        }
-    }
-
-
-    // listcurrencies without any arguments returns only 1 264: VRSCTEST, and listcurrencies(imported) returns all the other minable pbaas currencies.
-    pub fn get_latest_currencies(&mut self) -> Result<Vec<Currency>, ()> {
-        let currencies = self.client.list_currencies(None).unwrap();
-
-        let mut filtered_currencies: Vec<Currency> = currencies
-            .0
-            .into_iter()
-            .filter(|currency| [40, 264].contains(&currency.currencydefinition.options))
-            .collect();
-
-        let currencies = self.client.list_currencies(Some("imported")).unwrap();
-
-        let mut pbaas_currencies = currencies
-            .0
-            .into_iter()
-            .filter(|currency| [34, 40, 264].contains(&currency.currencydefinition.options))
-            .collect();
-
-        filtered_currencies.append(&mut pbaas_currencies);
-
-        Ok(filtered_currencies)
-    }
-
-    // TODO do a single getcurrency for all the converters to get their contents and the names?
-    pub fn currency_id_to_name(&mut self, currency_id: Address) -> String {
-        match self.id_names.get(&currency_id) {
-            Some(value) => return value.to_owned(),
-            None => {
-                let value = self
-                    .client
-                    .get_currency(&currency_id.to_string())
-                    .unwrap()
-                    .fullyqualifiedname;
-
-                self.id_names.insert(currency_id.clone(), value);
-                self.id_names.get(&currency_id).unwrap().to_owned()
-            }
-        }
-    }
-
-    pub fn currency_id_hex_to_name(&mut self, currencyidhex: &str) -> String {
-        if self.hex_names.is_none() {
-            let mut currencies = self.client.list_currencies(None).unwrap().0;
-
-            currencies.append(
-                self.client
-                    .list_currencies(Some("imported"))
-                    .unwrap()
-                    .0
-                    .as_mut(),
-            );
-
-            let mut hex_map = HashMap::new();
-
-            for currency in currencies {
-                hex_map.insert(
-                    currency.currencydefinition.currencyidhex.clone(),
-                    currency.currencydefinition.name.clone(),
-                );
-            }
-
-            self.hex_names = Some(hex_map);
-        }
-
-        match self.hex_names.as_mut().unwrap().get(currencyidhex) {
-            Some(value) => return value.to_owned(),
-            None => {
-                panic!("no coin found in currencyidhex conversion");
-            }
-        }
-    }
-}
-
-#[cfg(test)]
-mod tests {
-    #[test]
-    fn it_works() {
-        use super::*;
-
-        let mut verus = Verus::new(true, None);
-        verus.get_latest_baskets().unwrap();
-    }
-}
-*/
