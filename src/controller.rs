@@ -77,35 +77,34 @@ impl Controller {
                         }
                     }
                     ControllerMessage::NewBlock(chain_name, blockhash) => {
-                        info!("new block arrived on {}: {}", chain_name, blockhash);
+                        let active_chain_name = self.active_chain.read().unwrap().get_name();
+                        if active_chain_name == chain_name {
+                            info!("new block arrived on {}: {}", chain_name, blockhash);
 
-                        self.update_baskets();
+                            self.update_baskets();
+                        }
                     }
                     ControllerMessage::NewTransaction(chain_name, txid) => {
-                        // todo need to fix deadlock
-                        if let Ok(read) = self.active_chain.read() {
-                            if !(read.get_name() == chain_name) {
-                                debug!("do not process, name is not the same");
-                            } else {
-                                debug!("process this tx: {}", txid);
+                        let active_chain_name = self.active_chain.read().unwrap().get_name();
+                        if active_chain_name == chain_name {
+                            debug!("process this tx: {}", txid);
 
-                                let hash = Hash::from_str(&txid).unwrap();
-                                let txid = Txid::from_hash(hash);
+                            let hash = Hash::from_str(&txid).unwrap();
+                            let txid = Txid::from_hash(hash);
 
-                                if let Ok(raw_tx) = self
-                                    .active_chain
-                                    .read()
-                                    .unwrap()
-                                    .client()
-                                    .get_raw_transaction_verbose(&txid)
-                                {
-                                    process_transaction(
-                                        raw_tx,
-                                        Rc::clone(&self.id_names),
-                                        Rc::clone(&self.active_chain),
-                                        self.l_tx.clone(),
-                                    )
-                                }
+                            if let Ok(raw_tx) = self
+                                .active_chain
+                                .read()
+                                .unwrap()
+                                .client()
+                                .get_raw_transaction_verbose(&txid)
+                            {
+                                process_transaction(
+                                    raw_tx,
+                                    Rc::clone(&self.id_names),
+                                    Rc::clone(&self.active_chain),
+                                    self.l_tx.clone(),
+                                )
                             }
                         }
 
