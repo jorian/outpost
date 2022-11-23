@@ -92,6 +92,7 @@ impl UI {
                     });
                 }
                 UIMessage::UpdateSelectorCurrencies(vec) => {
+                    debug!("{:?}", &vec);
                     self.siv
                         .call_on_name("SELECTOR", |selector_view: &mut Selector| {
                             selector_view.update(vec);

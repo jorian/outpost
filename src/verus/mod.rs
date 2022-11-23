@@ -140,6 +140,10 @@ pub trait Chain {
             .collect();
 
         filtered_currencies.append(&mut pbaas_currencies);
+        let filtered_currencies = filtered_currencies
+            .into_iter()
+            .filter(|c| c.currencydefinition.currencyidhex != self.currencyidhex())
+            .collect();
 
         Ok(filtered_currencies)
     }
@@ -151,7 +155,7 @@ pub trait Chain {
         // A bridge has 2 sides, so we need to find out which sides in order to include the reserves in our baskets.
         // A bridge is defined on the subsystem and ties to the system it was launched from.
         let active_chain_filter = |currency: &Currency| {
-            currency.currencydefinition.systemid == active_chain_id.chainid || {
+            &currency.currencydefinition.systemid == &active_chain_id.chainid || {
                 if let Some(launchsystemid) = currency.currencydefinition.launchsystemid.as_ref() {
                     *launchsystemid == active_chain_id.chainid
                 } else {
@@ -216,8 +220,9 @@ pub trait Chain {
 
                 last_currency_states.push(Basket {
                     name: self.currency_id_to_name(currency.1.clone()),
-                    currencynames,
                     currencyid: currency.1.clone(),
+                    active_chain_id: active_chain_id.chainid.clone(),
+                    currencynames,
                     currency_state: currency_state_result.currencystate.clone(),
                 });
             }
@@ -237,6 +242,7 @@ impl Debug for dyn Chain {
 pub struct Basket {
     pub name: String,
     pub currencyid: Address,
+    pub active_chain_id: Address,
     pub currency_state: vrsc_rpc::json::CurrencyState,
     pub currencynames: HashMap<Address, String>,
 }

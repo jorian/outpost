@@ -40,17 +40,6 @@ impl View for ReserveTable {
             printer.print((printer.output_size.x.saturating_sub(7), 0), "Weight");
         });
 
-        let vrsc = self
-            .basket
-            .currency_state
-            .reservecurrencies
-            .iter()
-            .find(|b| {
-                // TODO add VRSC currency
-                ["iJhCezBExJHvtyH3fGhNnt2NhU4Ztkf2yq"].contains(&b.currencyid.to_string().as_str())
-            })
-            .unwrap();
-
         for (i, rc) in self
             .basket
             .currency_state
@@ -70,7 +59,7 @@ impl View for ReserveTable {
                 (printer.output_size.x.saturating_sub(32), i + 1),
                 &format!(
                     "{:012.8} | {:016.8}",
-                    rc.reserves.as_vrsc() / vrsc.reserves.as_vrsc(),
+                    rc.priceinreserve.as_vrsc(),
                     rc.reserves.as_vrsc()
                 ),
             );

@@ -42,12 +42,12 @@ impl Reserves {
                 let mut ll = LinearLayout::vertical();
 
                 for mut basket in self.baskets.clone().into_iter() {
+                    // apply the filter from selector
                     basket.currency_state.reservecurrencies.retain(|rc| {
-                        self.checked_currencies
-                            .iter()
-                            .any(|cur| cur.currencydefinition.currencyid == rc.currencyid)
-                            || rc.currencyid.to_string()
-                                == "iJhCezBExJHvtyH3fGhNnt2NhU4Ztkf2yq".to_string()
+                        self.checked_currencies.iter().any(|checked_currency| {
+                            checked_currency.currencydefinition.currencyid == rc.currencyid
+                                || rc.currencyid == basket.active_chain_id
+                        })
                     });
                     if basket.currency_state.reservecurrencies.len() > 1 {
                         ll.add_child(ReserveTable::new(basket));
