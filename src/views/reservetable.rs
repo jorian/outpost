@@ -95,7 +95,7 @@ impl View for ReserveTable {
         }
 
         printer.with_color(Color::from_256colors(32).into(), |printer| {
-            printer.print((printer.output_size.x.saturating_sub(8), 0), " Weight ");
+            printer.print((printer.output_size.x.saturating_sub(8), 0), " Amount ");
         });
 
         for (i, rc) in self
