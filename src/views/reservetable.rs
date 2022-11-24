@@ -1,4 +1,5 @@
 use cursive::{theme::Color, Vec2, View};
+use tracing::debug;
 
 use crate::verus::Basket;
 
@@ -6,38 +7,95 @@ pub struct ReserveTable {
     pub basket: Basket,
 }
 
+// -- papa.v2 -------------------------------------------------------------------------------------------- Price ------------ Weight
+// VRSCTEST                                                                                  1756739166.70826087 |      202.02656542
+// v2                                                                                       11110314722.06983757 | 44443705.11234567
 impl View for ReserveTable {
     fn draw(&self, printer: &cursive::Printer) {
-        // title draw:
-        let eofp = ((printer.output_size.x.saturating_sub(26)) / 2)
-            .saturating_sub(&self.basket.name.len() / 2);
-        let bolp = eofp + &self.basket.name.len();
+        let biggest_number_weight = self
+            .basket
+            .currency_state
+            .reservecurrencies
+            .iter()
+            .map(|rc| {
+                rc.reserves
+                    .as_sat()
+                    .to_string()
+                    .chars()
+                    .collect::<Vec<_>>()
+                    .len()
+            })
+            .max()
+            .unwrap()
+            + 1;
 
-        for i in 0..(eofp.saturating_sub(1)) {
-            printer.print((i, 0), "-");
-        }
+        debug!("{:#?}", self.basket.currency_state.reservecurrencies);
+        debug!(
+            "biggest number weight {}: {}",
+            self.basket.name, biggest_number_weight
+        );
+
+        let biggest_number_price = self
+            .basket
+            .currency_state
+            .reservecurrencies
+            .iter()
+            .map(|rc| {
+                rc.priceinreserve
+                    .as_sat()
+                    .to_string()
+                    .chars()
+                    .collect::<Vec<_>>()
+                    .len()
+            })
+            .max()
+            .unwrap()
+            + 1;
+
+        debug!("biggest number price: {}", biggest_number_price);
+
+        // title draw:
+        // two dashes:
+        printer.print((0, 0), &format!(" {}   ", '\u{1F9FA}'));
+
+        let bolp = &self.basket.name.len() + 6;
 
         printer.with_color(Color::from_256colors(32).into(), |printer| {
+            printer.print((4, 0), &format!(" {} ", &self.basket.name));
+        });
+
+        for i in (bolp)
+            ..(printer
+                .output_size
+                .x
+                .saturating_sub(biggest_number_weight + 10))
+        {
+            printer.print((i, 0), "-");
+        }
+        printer.with_color(Color::from_256colors(32).into(), |printer| {
             printer.print(
-                (eofp.saturating_sub(1), 0),
-                &format!(" {} ", &self.basket.name),
+                (
+                    printer
+                        .output_size
+                        .x
+                        .saturating_sub(biggest_number_weight + 9),
+                    0,
+                ),
+                "Price",
             );
         });
 
-        for i in (bolp + 1)..(printer.output_size.x.saturating_sub(26)) {
+        for i in printer
+            .output_size
+            .x
+            .saturating_sub(biggest_number_weight + 3)
+            ..printer.output_size.x.saturating_sub(7)
+        {
             printer.print((i, 0), "-");
         }
-        printer.with_color(Color::from_256colors(32).into(), |printer| {
-            printer.print((printer.output_size.x.saturating_sub(25), 0), "Price");
-        });
-
-        printer.print(
-            (printer.output_size.x.saturating_sub(20), 0),
-            " ----------- ",
-        );
 
         printer.with_color(Color::from_256colors(32).into(), |printer| {
-            printer.print((printer.output_size.x.saturating_sub(7), 0), "Weight");
+            printer.print((printer.output_size.x.saturating_sub(8), 0), " Weight ");
         });
 
         for (i, rc) in self
@@ -49,23 +107,46 @@ impl View for ReserveTable {
         {
             printer.print(
                 (0, i + 1),
-                self.basket
-                    .currencynames
-                    .get(&rc.currencyid)
-                    .unwrap_or(&rc.currencyid.to_string()),
-            );
-            printer.print(
-                // 32 should be calcualted
-                (printer.output_size.x.saturating_sub(32), i + 1),
                 &format!(
-                    "{:012.8} | {:016.8}",
-                    rc.priceinreserve.as_vrsc(),
-                    rc.reserves.as_vrsc()
+                    " {}",
+                    self.basket
+                        .currencynames
+                        .get(&rc.currencyid)
+                        .unwrap_or(&rc.currencyid.to_string()),
+                ),
+            );
+
+            printer.print(
+                (
+                    printer
+                        .output_size
+                        .x
+                        .saturating_sub(biggest_number_weight + 4 + biggest_number_price),
+                    i + 1,
+                ),
+                &format!(
+                    "{number:prec$.8}",
+                    prec = biggest_number_price,
+                    number = rc.priceinreserve.as_vrsc()
+                ),
+            );
+
+            printer.print(
+                (
+                    printer
+                        .output_size
+                        .x
+                        .saturating_sub(biggest_number_weight + 4),
+                    i + 1,
+                ),
+                &format!(
+                    " | {number:prec$.8}",
+                    prec = biggest_number_weight,
+                    number = rc.reserves.as_vrsc()
                 ),
             );
         }
     }
-
     // when drawing this table, i need to know how many currencies to show in order to calculate the required height of the view.
     // that means that this table needs to have state on which currencies it should show.
     // that means that the initiation of this table should accept a list of currencies.
