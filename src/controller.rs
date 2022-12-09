@@ -34,6 +34,7 @@ pub struct Controller {
 impl Controller {
     pub fn new(testnet: bool) -> Self {
         let (c_tx, c_rx) = mpsc::channel::<ControllerMessage>();
+
         let (l_tx, l_rx) = mpsc::channel::<LogMessage>();
 
         let id_names = Rc::new(RwLock::new(HashMap::new()));

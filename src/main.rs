@@ -6,12 +6,15 @@ pub mod views;
 
 use configuration::get_configuration;
 use controller::Controller;
+use tracing::debug;
 use tracing_subscriber::EnvFilter;
 
 fn main() {
     let config = get_configuration().expect("failed to read configuration");
 
     logging_setup(); // TODO add RUST_LOG env to config
+
+    debug!("logging enabled");
 
     let mut controller = Controller::new(config.testnet);
 

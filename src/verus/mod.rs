@@ -136,7 +136,7 @@ pub trait Chain {
         let mut pbaas_currencies = currencies
             .0
             .into_iter()
-            .filter(|currency| [34, 40, 264].contains(&currency.currencydefinition.options))
+            .filter(|currency| [34, 40, 136, 264].contains(&currency.currencydefinition.options))
             .collect();
 
         filtered_currencies.append(&mut pbaas_currencies);

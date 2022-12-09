@@ -6,6 +6,7 @@ use crate::controller::IdNames;
 
 use super::{read_config_contents, Chain};
 
+#[derive(Debug)]
 pub struct PBaaSChain {
     testnet: bool,
     name: Option<String>, // the name of a PBaaSChain can only be retrieved by querying a verus daemon at runtime
