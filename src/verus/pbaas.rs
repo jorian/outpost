@@ -1,5 +1,6 @@
 use os_info::Type as OSType;
 use std::{collections::HashMap, fs::ReadDir, path::PathBuf, rc::Rc};
+use tracing::debug;
 use vrsc_rpc::{json::vrsc::Address, Auth, Client, RpcApi};
 
 use crate::controller::IdNames;
@@ -77,6 +78,7 @@ impl Chain for PBaaSChain {
 
 impl PBaaSChain {
     pub fn new(testnet: bool, currencyidhex: String, id_names: IdNames) -> Self {
+        dbg!(&currencyidhex);
         let client = Client::chain(testnet, &currencyidhex, Auth::ConfigFile).unwrap();
         // unwrap: we can unwrap this because a pbaas chain instance is only created when it is locally found.
 
