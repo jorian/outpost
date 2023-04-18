@@ -144,7 +144,7 @@ pub trait Chain {
         filtered_currencies.append(&mut pbaas_currencies);
         let filtered_currencies = filtered_currencies
             .into_iter()
-            .filter(|c| c.currencydefinition.currencyidhex != self.currencyidhex())
+            .filter(|c| c.currencydefinition.currencyidhex != Some(self.currencyidhex()))
             .collect();
 
         Ok(filtered_currencies)

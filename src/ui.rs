@@ -2,11 +2,11 @@ use std::sync::mpsc;
 
 use cursive::{
     view::{Nameable, Resizable},
-    views::{LinearLayout, Panel},
+    views::{DummyView, LinearLayout, Panel},
     CursiveRunnable, CursiveRunner,
 };
 use tracing::debug;
-use vrsc_rpc::json::Currency;
+use vrsc_rpc::json::{vrsc::Amount, Currency};
 
 use crate::{
     controller::ControllerMessage,
@@ -17,6 +17,7 @@ use crate::{
         pbaas_dialog::PbaasDialog,
         reserves::Reserves,
         selector::Selector,
+        tvl::TVL,
     },
 };
 
@@ -45,15 +46,23 @@ impl UI {
 
         let main_view = LinearLayout::horizontal()
             .child(
-                Panel::new(
-                    LinearLayout::vertical().child(
-                        Selector::new(c_tx.clone())
-                            .with_name("SELECTOR")
-                            .full_height(),
+                LinearLayout::vertical()
+                    .child(
+                        Panel::new(
+                            LinearLayout::vertical().child(
+                                Selector::new(c_tx.clone())
+                                    .with_name("SELECTOR")
+                                    .full_height(),
+                            ),
+                        )
+                        .title("Selector")
+                        .fixed_width(30),
+                    )
+                    .child(
+                        Panel::new(TVL::new().with_name("TVL"))
+                            .title("TVL")
+                            .fixed_height(10),
                     ),
-                )
-                .title("Selector")
-                .fixed_width(30),
             )
             .child(
                 Panel::new(Reserves::new().with_name("RESERVES"))
@@ -98,7 +107,10 @@ impl UI {
                             selector_view.update(vec);
                         });
                 }
-
+                UIMessage::UpdateTLV(total) => {
+                    self.siv
+                        .call_on_name("TVL", |tvl_view: &mut TVL| tvl_view.update(total));
+                }
                 UIMessage::ApplyFilter => {
                     let mut checked_currencies = vec![];
 
@@ -145,6 +157,7 @@ impl UI {
 pub enum UIMessage {
     UpdateReserveOverview(Vec<Basket>),
     UpdateSelectorCurrencies(Vec<Currency>),
+    UpdateTLV(Amount),
     ApplyFilter,
     NewLog(String),
     PBaasDialog(mpsc::Sender<ControllerMessage>, Vec<String>),

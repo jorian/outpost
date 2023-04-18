@@ -6,11 +6,12 @@ use std::{
 };
 
 use chrono::Local;
+use serde_json::Value;
 use tracing::{debug, error, info};
 use vrsc_rpc::{
     bitcoin::{hashes::sha256d::Hash, Txid},
-    json::GetRawTransactionResultVerbose,
-    RpcApi,
+    json::{vrsc::Amount, GetRawTransactionResultVerbose},
+    Client, RpcApi,
 };
 
 use crate::{
@@ -66,6 +67,7 @@ impl Controller {
 
         self.update_selection_screen();
         self.update_baskets();
+        let _ = self.ui.ui_tx.send(UIMessage::UpdateTLV(get_tlv()));
 
         while self.ui.step() {
             if let Some(message) = self.c_rx.try_iter().next() {
@@ -84,6 +86,8 @@ impl Controller {
 
                             self.update_baskets();
                         }
+
+                        self.ui.ui_tx.send(UIMessage::UpdateTLV(get_tlv())).unwrap();
                     }
                     ControllerMessage::NewTransaction(chain_name, txid) => {
                         let active_chain_name = self.active_chain.read().unwrap().get_name();
@@ -289,6 +293,48 @@ impl Controller {
             }
         }
     }
+}
+
+fn get_tlv() -> Amount {
+    let client = Client::vrsc(true, vrsc_rpc::Auth::ConfigFile).unwrap();
+    let resp: Value = client
+        .call("getcurrencyconverters", &["vrsctest".into()])
+        .unwrap();
+
+    let mut total_vrsc = Amount::ZERO;
+
+    for obj in resp.as_array().unwrap().iter() {
+        let obj = obj.as_object().unwrap();
+        let last_nota = obj["lastnotarization"].as_object().unwrap();
+        let currency_state = last_nota["currencystate"].as_object().unwrap();
+        let reserve_currencies = currency_state["reservecurrencies"].as_array().unwrap();
+        for currency in reserve_currencies.iter() {
+            if currency
+                .as_object()
+                .unwrap()
+                .get("currencyid")
+                .unwrap()
+                .as_str()
+                .unwrap()
+                == "iJhCezBExJHvtyH3fGhNnt2NhU4Ztkf2yq"
+            {
+                total_vrsc += Amount::from_vrsc(
+                    currency
+                        .as_object()
+                        .unwrap()
+                        .get("reserves")
+                        .unwrap()
+                        .as_f64()
+                        .unwrap(),
+                )
+                .unwrap();
+            }
+        }
+    }
+
+    dbg!(total_vrsc.as_vrsc());
+
+    total_vrsc
 }
 
 pub fn get_running_chains(testnet: bool, id_names: IdNames) -> Vec<Rc<RwLock<Box<dyn Chain>>>> {
