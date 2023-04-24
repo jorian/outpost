@@ -4,7 +4,7 @@ use cursive::{
     align::HAlign,
     view::ViewWrapper,
     views::{Dialog, SelectView},
-    wrap_impl,
+    wrap_impl, View,
 };
 use tracing::debug;
 
@@ -26,6 +26,7 @@ impl PbaasDialog {
 
         sv.set_on_submit(move |siv, item: &str| {
             debug!("selected {:?}", &item);
+
             c_tx_clone
                 .send(ControllerMessage::ChainChange(item.to_string()))
                 .unwrap();
@@ -33,6 +34,9 @@ impl PbaasDialog {
         });
 
         view.set_content(sv.h_align(HAlign::Left));
+        view.add_button("Cancel", |s| {
+            s.pop_layer();
+        });
 
         PbaasDialog { view }
     }

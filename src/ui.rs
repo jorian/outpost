@@ -10,7 +10,7 @@ use vrsc_rpc::json::{vrsc::Amount, Currency};
 
 use crate::{
     controller::ControllerMessage,
-    verus::Basket,
+    verus::{pbaas::PBaaSChain, Basket},
     views::{
         filterbox::FilterBox,
         log::{LogMessage, LogView},
@@ -38,10 +38,15 @@ impl UI {
 
         let c_tx_clone = c_tx.clone();
 
-        siv.add_global_callback('p', move |_s| {
-            c_tx_clone
-                .send(ControllerMessage::PBaaSDialog(c_tx_clone.clone()))
-                .unwrap();
+        siv.add_global_callback('p', move |s| {
+            debug!("p was pressed");
+            if s.find_name::<PbaasDialog>("pbaas_dialog").is_some() {
+                debug!("pbaas dialog found, ignore");
+            } else {
+                c_tx_clone
+                    .send(ControllerMessage::PBaaSDialog(c_tx_clone.clone()))
+                    .unwrap();
+            }
         });
 
         let main_view = LinearLayout::horizontal()
@@ -141,9 +146,10 @@ impl UI {
                     let cb_sink = self.siv.cb_sink().clone();
                     cb_sink
                         .send(Box::new(|s| {
-                            s.add_layer(PbaasDialog::new(c_tx, labels));
+                            s.add_layer(PbaasDialog::new(c_tx, labels).with_name("pbaas_dialog"));
                         }))
                         .unwrap();
+                    self.siv.step();
                 }
             }
         }

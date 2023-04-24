@@ -8,7 +8,7 @@ version = "0.1.0"
 [dependencies]
 chrono = "0.4"
 color-eyre = "0.6"
-cursive = "0.20"
+cursive = "0.20.0"
 cursive-aligned-view = "^0"
 cursive_table_view = { git = "https://github.com/BonsaiDen/cursive_table_view" }
 tracing = "0.1"
