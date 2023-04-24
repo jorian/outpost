@@ -1,5 +1,5 @@
 use std::{
-    collections::HashMap,
+    collections::{BTreeMap, HashMap},
     rc::Rc,
     str::FromStr,
     sync::{mpsc, RwLock},
@@ -10,7 +10,10 @@ use serde_json::Value;
 use tracing::{debug, error, info};
 use vrsc_rpc::{
     bitcoin::{hashes::sha256d::Hash, Txid},
-    json::{vrsc::Amount, GetRawTransactionResultVerbose},
+    json::{
+        vrsc::{Address, Amount},
+        GetRawTransactionResultVerbose,
+    },
     Client, RpcApi,
 };
 
@@ -67,7 +70,13 @@ impl Controller {
 
         self.update_selection_screen();
         self.update_baskets();
-        let _ = self.ui.ui_tx.send(UIMessage::UpdateTLV(get_tlv()));
+
+        if let Ok(chain) = self.active_chain.read() {
+            let _ = self
+                .ui
+                .ui_tx
+                .send(UIMessage::UpdateTLV(get_tlv(chain.as_ref())));
+        }
 
         while self.ui.step() {
             if let Some(message) = self.c_rx.try_iter().next() {
@@ -78,6 +87,13 @@ impl Controller {
                         if let Err(e) = self.ui.ui_tx.send(UIMessage::ApplyFilter) {
                             error!("{:?}", e)
                         }
+
+                        if let Ok(chain) = self.active_chain.read() {
+                            let _ = self
+                                .ui
+                                .ui_tx
+                                .send(UIMessage::UpdateTLV(get_tlv(chain.as_ref())));
+                        }
                     }
                     ControllerMessage::NewBlock(chain_name, blockhash) => {
                         let active_chain_name = self.active_chain.read().unwrap().get_name();
@@ -86,8 +102,12 @@ impl Controller {
 
                             self.update_baskets();
                         }
-
-                        self.ui.ui_tx.send(UIMessage::UpdateTLV(get_tlv())).unwrap();
+                        if let Ok(chain) = self.active_chain.read() {
+                            let _ = self
+                                .ui
+                                .ui_tx
+                                .send(UIMessage::UpdateTLV(get_tlv(chain.as_ref())));
+                        }
                     }
                     ControllerMessage::NewTransaction(chain_name, txid) => {
                         let active_chain_name = self.active_chain.read().unwrap().get_name();
@@ -129,6 +149,13 @@ impl Controller {
                                 .find(|c| c.read().unwrap().get_name() == chain)
                                 .unwrap(),
                         );
+
+                        if let Ok(chain) = self.active_chain.read() {
+                            let _ = self
+                                .ui
+                                .ui_tx
+                                .send(UIMessage::UpdateTLV(get_tlv(chain.as_ref())));
+                        }
 
                         self.update_selection_screen();
                         self.update_baskets();
@@ -226,6 +253,7 @@ impl Controller {
                 for vout in &raw_tx.vout {
                     if let Some(crosschain_import) = &vout.script_pubkey.crosschainimport {
                         info!("a transfer was settled: {}", raw_tx.txid);
+                        // if crosschain_import.exporttxid
                         info!("crosschainimport {:#?}", crosschain_import);
                         if let Ok(mut write) = id_names.write() {
                             let currencyname = write
@@ -245,7 +273,7 @@ impl Controller {
 
                             l_tx.send(LogMessage {
                                 time: format!("{}", Local::now().format("%H:%M:%S")),
-                                _type: crate::views::log::MessageType::Initiate,
+                                _type: crate::views::log::MessageType::Settle,
                                 reserve: currencyname,
                                 amount_in_currency: String::new(),
                                 amount_in: vout.value,
@@ -257,6 +285,9 @@ impl Controller {
                     // if let Some(object) = value["reserveoutput"].as_object() {
                     //     info!("reserveoutput {:#?}", object);
                     // }
+
+                    // sent: 87e91ddc75cb60ae7aa461cdd6b33101451e64cd53124f9df36cd1c51b8bad58
+                    // 1b3f5cdc77c2e11c1225246db7703b8686d3650c7e48df68d2db1b77f001c370
                 }
             }
         }
@@ -295,13 +326,16 @@ impl Controller {
     }
 }
 
-fn get_tlv() -> Amount {
-    let client = Client::vrsc(true, vrsc_rpc::Auth::ConfigFile).unwrap();
+fn get_tlv(chain: &dyn Chain) -> BTreeMap<String, f64> {
+    // let client = Client::vrsc(true, vrsc_rpc::Auth::ConfigFile).unwrap();
+    let client = chain.client();
+    let currencyname = chain.get_name();
     let resp: Value = client
-        .call("getcurrencyconverters", &["vrsctest".into()])
+        .call("getcurrencyconverters", &[currencyname.into()])
         .unwrap();
 
-    let mut total_vrsc = Amount::ZERO;
+    // let mut total_vrsc = Amount::ZERO;
+    let mut currencies: BTreeMap<Address, Amount> = BTreeMap::new();
 
     for obj in resp.as_array().unwrap().iter() {
         let obj = obj.as_object().unwrap();
@@ -309,32 +343,48 @@ fn get_tlv() -> Amount {
         let currency_state = last_nota["currencystate"].as_object().unwrap();
         let reserve_currencies = currency_state["reservecurrencies"].as_array().unwrap();
         for currency in reserve_currencies.iter() {
-            if currency
-                .as_object()
-                .unwrap()
-                .get("currencyid")
-                .unwrap()
-                .as_str()
-                .unwrap()
-                == "iJhCezBExJHvtyH3fGhNnt2NhU4Ztkf2yq"
-            {
-                total_vrsc += Amount::from_vrsc(
-                    currency
-                        .as_object()
-                        .unwrap()
-                        .get("reserves")
-                        .unwrap()
-                        .as_f64()
-                        .unwrap(),
-                )
-                .unwrap();
-            }
+            let currencyid = Address::from_str(
+                currency
+                    .as_object()
+                    .unwrap()
+                    .get("currencyid")
+                    .unwrap()
+                    .as_str()
+                    .unwrap(),
+            )
+            .unwrap();
+
+            let reserves = Amount::from_vrsc(
+                currency
+                    .as_object()
+                    .unwrap()
+                    .get("reserves")
+                    .unwrap()
+                    .as_f64()
+                    .unwrap(),
+            )
+            .unwrap();
+
+            currencies
+                .entry(currencyid)
+                .and_modify(|amt| *amt += reserves)
+                .or_insert(reserves);
         }
     }
 
-    dbg!(total_vrsc.as_vrsc());
-
-    total_vrsc
+    currencies
+        .into_iter()
+        .map(|(k, v)| {
+            (
+                client
+                    .get_currency(&k.to_string())
+                    .unwrap()
+                    .fullyqualifiedname,
+                // k.to_string(),
+                v.as_vrsc(),
+            )
+        })
+        .collect()
 }
 
 pub fn get_running_chains(testnet: bool, id_names: IdNames) -> Vec<Rc<RwLock<Box<dyn Chain>>>> {

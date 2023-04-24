@@ -1,4 +1,7 @@
-use std::sync::mpsc;
+use std::{
+    collections::{BTreeMap, HashMap},
+    sync::mpsc,
+};
 
 use cursive::{
     view::{Nameable, Resizable},
@@ -6,7 +9,10 @@ use cursive::{
     CursiveRunnable, CursiveRunner,
 };
 use tracing::debug;
-use vrsc_rpc::json::{vrsc::Amount, Currency};
+use vrsc_rpc::json::{
+    vrsc::{Address, Amount},
+    Currency,
+};
 
 use crate::{
     controller::ControllerMessage,
@@ -61,12 +67,13 @@ impl UI {
                             ),
                         )
                         .title("Selector")
-                        .fixed_width(30),
+                        .full_width(),
                     )
                     .child(
                         Panel::new(TVL::new().with_name("TVL"))
                             .title("TVL")
-                            .fixed_height(10),
+                            .full_height()
+                            .max_height(20),
                     ),
             )
             .child(
@@ -112,9 +119,13 @@ impl UI {
                             selector_view.update(vec);
                         });
                 }
-                UIMessage::UpdateTLV(total) => {
-                    self.siv
-                        .call_on_name("TVL", |tvl_view: &mut TVL| tvl_view.update(total));
+                UIMessage::UpdateTLV(hm) => {
+                    let cb_sink = self.siv.cb_sink().clone();
+                    cb_sink
+                        .send(Box::new(|s| {
+                            s.call_on_name("TVL", |tvl_view: &mut TVL| tvl_view.update(hm));
+                        }))
+                        .unwrap();
                 }
                 UIMessage::ApplyFilter => {
                     let mut checked_currencies = vec![];
@@ -149,7 +160,6 @@ impl UI {
                             s.add_layer(PbaasDialog::new(c_tx, labels).with_name("pbaas_dialog"));
                         }))
                         .unwrap();
-                    self.siv.step();
                 }
             }
         }
@@ -163,7 +173,7 @@ impl UI {
 pub enum UIMessage {
     UpdateReserveOverview(Vec<Basket>),
     UpdateSelectorCurrencies(Vec<Currency>),
-    UpdateTLV(Amount),
+    UpdateTLV(BTreeMap<String, f64>),
     ApplyFilter,
     NewLog(String),
     PBaasDialog(mpsc::Sender<ControllerMessage>, Vec<String>),
