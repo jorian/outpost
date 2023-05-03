@@ -128,7 +128,7 @@ pub trait Chain {
         let mut filtered_currencies: Vec<Currency> = currencies
             .0
             .into_iter()
-            .filter(|currency| [40, 264].contains(&currency.currencydefinition.options))
+            .filter(|currency| [32, 40, 264].contains(&currency.currencydefinition.options))
             .collect();
 
         let currencies = self.client().list_currencies(Some("imported")).unwrap();
@@ -142,7 +142,7 @@ pub trait Chain {
             .collect();
 
         filtered_currencies.append(&mut pbaas_currencies);
-        let filtered_currencies = filtered_currencies
+        let filtered_currencies: Vec<Currency> = filtered_currencies
             .into_iter()
             .filter(|c| c.currencydefinition.currencyidhex != Some(self.currencyidhex()))
             .collect();
