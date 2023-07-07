@@ -122,6 +122,7 @@ pub trait Chain {
 
     fn currency_id_to_name(&mut self, currency_id: Address) -> String;
 
+    // options 33 and 97 are decentralized and can be minted 'at will'
     fn get_latest_currencies(&self) -> Result<Vec<Currency>, ()> {
         let currencies = self.client().list_currencies(None).unwrap();
 
@@ -179,6 +180,8 @@ pub trait Chain {
             })
             .collect();
 
+        dbg!(&filtered_currencies);
+
         let imported_currencies = self.client().list_currencies(Some("imported")).unwrap();
 
         filtered_currencies.append(
@@ -195,6 +198,8 @@ pub trait Chain {
                 })
                 .collect::<Vec<_>>(),
         );
+
+        dbg!(&filtered_currencies);
 
         filtered_currencies.sort_unstable();
         filtered_currencies.dedup();
@@ -229,6 +234,8 @@ pub trait Chain {
                 });
             }
         }
+
+        dbg!(&last_currency_states);
 
         Ok(last_currency_states)
     }

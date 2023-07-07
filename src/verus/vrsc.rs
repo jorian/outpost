@@ -87,18 +87,24 @@ impl Chain for VerusChain {
 
 impl VerusChain {
     pub fn new(testnet: bool, id_names: IdNames) -> Self {
-        if !testnet {
-            unimplemented!()
-        }
-
         let client = Client::vrsc(testnet, vrsc_rpc::Auth::ConfigFile).unwrap();
 
-        VerusChain {
-            testnet,
-            name: "vrsctest".to_string(),
-            currencyidhex: "2d4eb6919e9fdb2934ff2481325e6335a29eefa6".to_string(),
-            client,
-            id_names,
+        if testnet {
+            VerusChain {
+                testnet,
+                name: "vrsctest".to_string(),
+                currencyidhex: "2d4eb6919e9fdb2934ff2481325e6335a29eefa6".to_string(),
+                client,
+                id_names,
+            }
+        } else {
+            VerusChain {
+                testnet,
+                name: "VRSC".to_string(),
+                currencyidhex: "4c6c9b5a9f7f31d8ea604cb49ad3645c01b8f51a".to_string(),
+                client,
+                id_names,
+            }
         }
     }
 }

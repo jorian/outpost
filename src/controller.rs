@@ -44,25 +44,29 @@ impl Controller {
         let id_names = Rc::new(RwLock::new(HashMap::new()));
 
         let pbaas_chains = get_running_chains(testnet, Rc::clone(&id_names));
-        let first = Rc::clone(pbaas_chains.first().unwrap());
+        if let Some(first) = pbaas_chains.first() {
+            let first = Rc::clone(first);
 
-        for chain in pbaas_chains.iter() {
-            if let Ok(read) = chain.read() {
-                read.start_zmq_tx_listener(c_tx.clone());
-                read.start_zmq_block_listener(c_tx.clone())
+            for chain in pbaas_chains.iter() {
+                if let Ok(read) = chain.read() {
+                    read.start_zmq_tx_listener(c_tx.clone());
+                    read.start_zmq_block_listener(c_tx.clone())
+                }
             }
+
+            let controller = Controller {
+                c_rx,
+                l_tx,
+                ui: UI::new(c_tx.clone(), l_rx),
+                pbaas_chains: pbaas_chains,
+                active_chain: first,
+                id_names,
+            };
+
+            return controller;
         }
 
-        let controller = Controller {
-            c_rx,
-            l_tx,
-            ui: UI::new(c_tx.clone(), l_rx),
-            pbaas_chains: pbaas_chains,
-            active_chain: first,
-            id_names,
-        };
-
-        controller
+        panic!("no running chains found");
     }
 
     pub fn start(&mut self) {
@@ -102,6 +106,7 @@ impl Controller {
 
                             self.update_baskets();
                         }
+
                         if let Ok(chain) = self.active_chain.read() {
                             let _ = self
                                 .ui
@@ -402,9 +407,12 @@ pub fn get_running_chains(testnet: bool, id_names: IdNames) -> Vec<Rc<RwLock<Box
         all_chains.push(Rc::new(RwLock::new(Box::new(c))));
     });
 
+    dbg!(&all_chains);
+
     all_chains
         .into_iter()
-        .filter(|chain| chain.read().unwrap().client().ping().is_ok())
+        // .inspect(|chain| )
+        .filter(|chain| dbg!(chain.read().unwrap().client().ping().is_ok()))
         .collect()
 }
 

@@ -1,6 +1,6 @@
 use os_info::Type as OSType;
 use std::{collections::HashMap, fs::ReadDir, path::PathBuf, rc::Rc};
-use tracing::debug;
+use tracing::{debug, instrument};
 use vrsc_rpc::{json::vrsc::Address, Auth, Client, RpcApi};
 
 use crate::controller::IdNames;
@@ -77,6 +77,7 @@ impl Chain for PBaaSChain {
 }
 
 impl PBaaSChain {
+    #[instrument]
     pub fn new(testnet: bool, currencyidhex: String, id_names: IdNames) -> Self {
         dbg!(&currencyidhex);
         let client = Client::chain(testnet, &currencyidhex, Auth::ConfigFile).unwrap();
@@ -93,8 +94,9 @@ impl PBaaSChain {
 }
 
 fn pbaas_dir_location(testnet: bool) -> Option<PathBuf> {
+    debug!("{:?}", os_info::get().os_type());
     match os_info::get().os_type() {
-        OSType::Ubuntu | OSType::Linux => {
+        OSType::Ubuntu | OSType::Linux | OSType::Debian => {
             if let Some(homedir) = dirs::home_dir() {
                 if testnet {
                     Some(PathBuf::from(&format!(
@@ -102,7 +104,10 @@ fn pbaas_dir_location(testnet: bool) -> Option<PathBuf> {
                         &homedir.to_str().unwrap()
                     )))
                 } else {
-                    unimplemented!()
+                    Some(PathBuf::from(&format!(
+                        "{}/.verus/pbaas",
+                        &homedir.to_str().unwrap()
+                    )))
                 }
             } else {
                 panic!("unsupported OS (home directory could not be found)")
@@ -116,7 +121,10 @@ fn pbaas_dir_location(testnet: bool) -> Option<PathBuf> {
                         &config_dir.to_str().unwrap()
                     )))
                 } else {
-                    unimplemented!()
+                    Some(PathBuf::from(&format!(
+                        "{}/Verus/pbaas",
+                        &config_dir.to_str().unwrap()
+                    )))
                 }
             } else {
                 panic!("unsupported OS (config directory could not be found")
