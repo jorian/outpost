@@ -1,6 +1,6 @@
 use os_info::Type as OSType;
 use std::{collections::HashMap, fs::ReadDir, path::PathBuf, rc::Rc};
-use tracing::{debug, instrument};
+use tracing::{debug, instrument, warn};
 use vrsc_rpc::{json::vrsc::Address, Auth, Client, RpcApi};
 
 use crate::controller::IdNames;
@@ -139,27 +139,29 @@ fn pbaas_dir_location(testnet: bool) -> Option<PathBuf> {
 /// - the .verustest/VerusTest directory has not been edited by a user. It assumes that all the directories that are found in .verustest are
 /// PBaaS chains. No guarantees can be given about each directory being an actual PBaaS chain.
 pub fn local_pbaas_chains(testnet: bool, id_names: IdNames) -> Vec<PBaaSChain> {
-    pbaas_dir_entries(testnet)
-        .filter_map(|d| d.ok())
-        .map(|dir| {
-            let currencyidhex = dir.file_name();
-            PBaaSChain::new(
-                testnet,
-                currencyidhex.to_string_lossy().to_string(),
-                Rc::clone(&id_names),
-            )
-        })
-        .collect()
+    if let Some(entries) = pbaas_dir_entries(testnet) {
+        entries
+            .filter_map(|d| d.ok())
+            .map(|dir| {
+                let currencyidhex = dir.file_name();
+                PBaaSChain::new(
+                    testnet,
+                    currencyidhex.to_string_lossy().to_string(),
+                    Rc::clone(&id_names),
+                )
+            })
+            .collect()
+    } else {
+        vec![]
+    }
 }
 
-fn pbaas_dir_entries(testnet: bool) -> ReadDir {
-    if let Some(verustest_path) = pbaas_dir_location(testnet) {
-        if let Ok(dir) = verustest_path.read_dir() {
-            return dir;
-        } else {
-            panic!("a .verustest directory was not found on this machine. Are there any PBaaS chains installed?");
-        }
+fn pbaas_dir_entries(testnet: bool) -> Option<ReadDir> {
+    if let Some(pbaas_path) = pbaas_dir_location(testnet) {
+        pbaas_path.read_dir().ok()
     } else {
-        panic!("Could not determine the .verustest location for this operating system. Are you running a weird version of Shubuntu?")
+        warn!("Could not determine the PBaaS directory location for this operating system.");
+
+        None
     }
 }
