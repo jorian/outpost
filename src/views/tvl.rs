@@ -16,9 +16,17 @@ impl TVL {
     pub fn update(&mut self, currencies: BTreeMap<String, f64>) {
         debug!("update TVL: {:#?}", currencies);
 
+        let mut sorted_currencies = Vec::from_iter(currencies);
+        sorted_currencies.sort_by(|currency_a, currency_b| {
+            currency_a
+                .0
+                .to_lowercase()
+                .cmp(&currency_b.0.to_lowercase())
+        });
+
         self.view.get_inner_mut().set_content(format!(
             "{}",
-            currencies
+            sorted_currencies
                 .iter()
                 .map(|(k, v)| format!(
                     " {:<max_name_len$}: {value:>max$.*} \n",
