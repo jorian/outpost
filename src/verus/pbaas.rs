@@ -136,7 +136,7 @@ fn pbaas_dir_location(testnet: bool) -> Option<PathBuf> {
 
 /// Gets all the locally installed PBaaS chains.
 /// Some assumptions have been made:
-/// - the .verustest/VerusTest directory has not been edited by a user. It assumes that all the directories that are found in .verustest are
+/// - the PBaaS directory has not been edited by a user. It assumes that all the directories that are found in PBaaS directory are
 /// PBaaS chains. No guarantees can be given about each directory being an actual PBaaS chain.
 pub fn local_pbaas_chains(testnet: bool, id_names: IdNames) -> Vec<PBaaSChain> {
     if let Some(entries) = pbaas_dir_entries(testnet) {

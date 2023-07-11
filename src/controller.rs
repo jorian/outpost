@@ -14,7 +14,7 @@ use vrsc_rpc::{
         vrsc::{Address, Amount},
         GetRawTransactionResultVerbose,
     },
-    Client, RpcApi,
+    RpcApi,
 };
 
 use crate::{
@@ -332,14 +332,12 @@ impl Controller {
 }
 
 fn get_tlv(chain: &dyn Chain) -> BTreeMap<String, f64> {
-    // let client = Client::vrsc(true, vrsc_rpc::Auth::ConfigFile).unwrap();
     let client = chain.client();
     let currencyname = chain.get_name();
     let resp: Value = client
         .call("getcurrencyconverters", &[currencyname.into()])
         .unwrap();
 
-    // let mut total_vrsc = Amount::ZERO;
     let mut currencies: BTreeMap<Address, Amount> = BTreeMap::new();
 
     for obj in resp.as_array().unwrap().iter() {
