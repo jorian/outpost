@@ -18,6 +18,7 @@ use vrsc_rpc::{
 };
 
 use crate::{
+    menu::BasketMode,
     ui::{UIMessage, UI},
     verus::pbaas::local_pbaas_chains,
     verus::{vrsc::VerusChain, Chain},
@@ -33,6 +34,7 @@ pub struct Controller {
     pbaas_chains: Vec<Rc<RwLock<Box<dyn Chain>>>>,
     active_chain: Rc<RwLock<Box<dyn Chain>>>,
     id_names: IdNames,
+    // basket_mode: BasketMode,
 }
 
 impl Controller {
@@ -176,6 +178,11 @@ impl Controller {
                             .ui_tx
                             .send(UIMessage::PBaasDialog(c_tx, labels))
                             .unwrap();
+                    }
+                    ControllerMessage::BasketModeChange(basket_mode) => {
+                        // self.basket_mode = basket_mode;
+
+                        let _ = self.ui.ui_tx.send(UIMessage::BasketModeChange(basket_mode));
                     }
                 }
             }
@@ -420,4 +427,5 @@ pub enum ControllerMessage {
     CurrencySelectionChange,
     ChainChange(String),
     PBaaSDialog(mpsc::Sender<ControllerMessage>),
+    BasketModeChange(BasketMode),
 }

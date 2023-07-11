@@ -10,6 +10,7 @@ use vrsc_rpc::json::Currency;
 
 use crate::{
     controller::ControllerMessage,
+    menu::BasketMode,
     verus::Basket,
     views::{
         filterbox::FilterBox,
@@ -49,7 +50,7 @@ impl UI {
             }
         });
 
-        crate::menu::set_menubar(&mut siv);
+        crate::menu::set_menubar(&mut siv, c_tx.clone());
         siv.set_autohide_menu(false);
 
         let main_view = LinearLayout::horizontal()
@@ -158,6 +159,18 @@ impl UI {
                         }))
                         .unwrap();
                 }
+                UIMessage::BasketModeChange(basket_mode) => {
+                    let cb_sink = self.siv.cb_sink().clone();
+                    cb_sink
+                        .send(Box::new(|s| {
+                            s.call_on_name("RESERVES", |view: &mut Reserves| {
+                                view.update_basket_mode(basket_mode);
+
+                                view.update_view();
+                            });
+                        }))
+                        .unwrap();
+                }
             }
         }
 
@@ -174,4 +187,5 @@ pub enum UIMessage {
     ApplyFilter,
     NewLog(String),
     PBaasDialog(mpsc::Sender<ControllerMessage>, Vec<String>),
+    BasketModeChange(BasketMode),
 }
