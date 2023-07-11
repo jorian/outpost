@@ -4,7 +4,7 @@ use cursive::{
     align::HAlign,
     view::ViewWrapper,
     views::{Dialog, SelectView},
-    wrap_impl, View,
+    wrap_impl,
 };
 use tracing::debug;
 

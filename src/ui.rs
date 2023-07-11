@@ -1,22 +1,16 @@
-use std::{
-    collections::{BTreeMap, HashMap},
-    sync::mpsc,
-};
+use std::{collections::BTreeMap, sync::mpsc};
 
 use cursive::{
     view::{Nameable, Resizable},
-    views::{DummyView, LinearLayout, Panel},
+    views::{LinearLayout, Panel},
     CursiveRunnable, CursiveRunner,
 };
 use tracing::debug;
-use vrsc_rpc::json::{
-    vrsc::{Address, Amount},
-    Currency,
-};
+use vrsc_rpc::json::Currency;
 
 use crate::{
     controller::ControllerMessage,
-    verus::{pbaas::PBaaSChain, Basket},
+    verus::Basket,
     views::{
         filterbox::FilterBox,
         log::{LogMessage, LogView},
