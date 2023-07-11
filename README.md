@@ -13,10 +13,10 @@ You have the choice to watch all reserve currencies and their reserves, based on
 - [x] add support for mempool scanning
 - [ ] add color to messages
 - [ ] update price information
-- [ ] support other PBaaS chains
+- [x] support other PBaaS chains
 - [ ] select specific currency baskets by their name
 - [ ] 24h change %
-- [ ] add settings menu
+- [x] add settings menu
   - apply filter to log yes/no
   - show log messages based on number of confirmations
 

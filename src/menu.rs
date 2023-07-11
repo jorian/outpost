@@ -21,27 +21,25 @@ pub fn set_menubar(siv: &mut Cursive, c_tx: mpsc::Sender<ControllerMessage>) {
             Tree::new().subtree(
                 "Basket mode",
                 Tree::new()
-                    .leaf("Select", {
+                    .leaf("Selected currencies", {
                         let c_tx = c_tx.clone();
                         move |_| {
-                            let _ =
-                                c_tx.send(ControllerMessage::BasketModeChange(BasketMode::Select));
+                            let _ = c_tx
+                                .send(ControllerMessage::BasketModeChange(BasketMode::Selected));
                         }
                     })
-                    .leaf("Full", {
+                    .leaf("All currencies", {
                         let c_tx = c_tx.clone();
                         move |_| {
-                            let _ =
-                                c_tx.send(ControllerMessage::BasketModeChange(BasketMode::Full));
+                            let _ = c_tx.send(ControllerMessage::BasketModeChange(BasketMode::All));
                         }
-                    })
-                    .leaf("Complete", |_| {}),
+                    }), // .leaf("Complete", |_| {}),
             ),
         );
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum BasketMode {
-    Select,
-    Full,
+    Selected,
+    All,
 }

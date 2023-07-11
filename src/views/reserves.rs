@@ -21,7 +21,7 @@ impl Reserves {
             view: LinearLayout::horizontal().min_width(100),
             baskets: vec![],
             checked_currencies: vec![],
-            basket_mode: BasketMode::Full,
+            basket_mode: BasketMode::All,
         }
     }
 
@@ -51,7 +51,7 @@ impl Reserves {
                 debug!("basket mode: {:?}", self.basket_mode);
 
                 match self.basket_mode {
-                    BasketMode::Full => {
+                    BasketMode::All => {
                         let filtered_baskets = self.baskets.iter().filter(|basket| {
                             basket.currency_state.reservecurrencies.iter().any(|rc| {
                                 self.checked_currencies
@@ -67,7 +67,7 @@ impl Reserves {
 
                         filtered_baskets.for_each(|b| ll.add_child(ReserveTable::new(b.clone())));
                     }
-                    BasketMode::Select => {
+                    BasketMode::Selected => {
                         for mut basket in self.baskets.clone().into_iter() {
                             // apply the filter from selector
                             basket.currency_state.reservecurrencies.retain(|rc| {
