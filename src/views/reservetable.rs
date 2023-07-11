@@ -57,7 +57,7 @@ impl View for ReserveTable {
 
         // title draw:
         // two dashes:
-        // printer.print((0, 0), "     ");
+        printer.print((0, 0), " -> ");
 
         let supply = &self.basket.currency_state.supply;
         let str_supply = supply.to_string_in(Denomination::Verus);
@@ -65,10 +65,7 @@ impl View for ReserveTable {
         let bolp = &self.basket.name.len() + str_supply.len() + 8;
 
         printer.with_color(Color::from_256colors(32).into(), |printer| {
-            printer.print(
-                (0, 0),
-                &format!(" -- {} ({})", &self.basket.name, str_supply),
-            );
+            printer.print((4, 0), &format!("{} ({})", &self.basket.name, str_supply));
         });
 
         for i in (bolp)

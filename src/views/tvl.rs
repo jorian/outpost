@@ -21,7 +21,7 @@ impl TVL {
             currencies
                 .iter()
                 .map(|(k, v)| format!(
-                    "{:<max_name_len$}: {value:>max$.*}\n",
+                    " {:<max_name_len$}: {value:>max$.*} \n",
                     k,
                     8,
                     max_name_len = 17,

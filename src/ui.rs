@@ -70,8 +70,8 @@ impl UI {
                         .full_width(),
                     )
                     .child(
-                        Panel::new(TVL::new().with_name("TVL"))
-                            .title("TVL")
+                        Panel::new(LogView::new(l_rx))
+                            .title("Log")
                             .full_height()
                             .max_height(20),
                     ),
@@ -81,7 +81,7 @@ impl UI {
                     .title("Reserves")
                     .full_width(),
             )
-            .child(Panel::new(LogView::new(l_rx)).title("Log").min_width(75));
+            .child(Panel::new(TVL::new().with_name("TVL")).title("TVL"));
 
         siv.add_fullscreen_layer(main_view);
 
