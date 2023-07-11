@@ -1,5 +1,6 @@
 pub mod configuration;
 pub mod controller;
+pub mod menu;
 pub mod ui;
 pub mod verus;
 pub mod views;

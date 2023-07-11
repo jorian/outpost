@@ -49,6 +49,9 @@ impl UI {
             }
         });
 
+        crate::menu::set_menubar(&mut siv);
+        siv.set_autohide_menu(false);
+
         let main_view = LinearLayout::horizontal()
             .child(
                 LinearLayout::vertical()
